@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+        <title>分析，理解，优化Laravel &middot; </title>
+        <meta name="description" content="">
+        <meta name="HandheldFriendly" content="True">
+        <meta name="MobileOptimized" content="320">
+        <meta name="generator" content="Hugo 0.15" />
+        <meta name="robots" content="index,follow">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="stylesheet" href="http://chefxu.github.io/css/normalize.css">
+        <link rel="stylesheet" href="http://chefxu.github.io/css/highlight.css">
+        <link rel="stylesheet" href="http://chefxu.github.io/css/style.css">
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,400,600,700,300&subset=latin,cyrillic-ext,latin-ext,cyrillic">
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
+    </head>
+    <body>
+        
+
+        <div id="wrapper">
+            <header class="site-header">
+                <div class="container">
+                    <div class="site-title-wrapper">
+                        
+                            <h1 class="site-title">
+                                <a title="代码苦旅" href="http://chefxu.github.io/">代码苦旅</a>
+                            </h1>
+                        
+                        <a class="button-square" href="http://chefxu.github.io/index.xml"><i class="fa fa-rss"></i></a>
+                        
+                        
+                        
+                        
+                        
+                    </div>
+
+                    <ul class="site-nav">
+                        
+                    </ul>
+                </div>
+            </header>
+
+            <div id="container">
+
+
+<div class="container">
+    <article class="post-container" itemscope="" itemtype="http://schema.org/BlogPosting">
+        <header class="post-header">
+    <h1 class="post-title" itemprop="name headline">分析，理解，优化Laravel</h1>
+    
+    <p class="post-date">
+        <span>Published <time datetime="2016-04-19" itemprop="datePublished">Tue, Apr 19, 2016</time></span>
+        <span>by</span>
+        <span itemscope="" itemprop="author" itemtype="http://schema.org/Person">
+            <span itemprop="name">
+                <a href="" itemprop="url" rel="author"></a>
+            </span>
+        </span>
+    </p>
+</header>
+
+        <div class="post-content clearfix" itemprop="articleBody">
+    
+
+    
+
+<h1 id="前言:9342adb7b594d3cbcff5efa79997fd88">前言</h1>
+
+<p>使用Laravel接近两年了， 从4.2到现在的5.2。大多数情况下，Laravel都能很好的支撑我们的系统。不管你是否使用或打算使用， 了解Laravel的设计对于提高程序水平也很有帮助。本文是我的一个学习laravel的过程， 也是我实现高性能server <a href="https://github.com/chefxu/stone">stone</a>下一个目标的过程。限于本人水平有限，错误在所难免，希望大家不吝指正。</p>
+
+<p><em>注：因为是边写边改， 所以内容目录随时会有调整。</em></p>
+
+<h1 id="一个http请求的执行流程:9342adb7b594d3cbcff5efa79997fd88">一个HTTP请求的执行流程</h1>
+
+<ol>
+<li><p>创建app， app本质上是一个ioc容器（Illuminate\Container\Container），这个概念对于laravel很重要，laravel的核心组件都会注册到这个容器里面。</p>
+
+<pre><code class="language-php">$app = new Illuminate\Foundation\Application(
+    realpath(__DIR__.'/../')
+);
+</code></pre>
+
+<ul>
+<li>初始化全局ioc容器app， 并把自己本身注册进去</li>
+<li>注册基本的Service Provider: EventServiceProvider, RoutingServiceProvider</li>
+<li>注册核心的class别名，参看：registerCoreContainerAliases</li>
+</ul></li>
+
+<li><p>核心接口绑定， 如果需替换自己实现的Kernel， 可以修改这里。</p>
+
+<pre><code class="language-php">// http处理
+$app-&gt;singleton(
+    Illuminate\Contracts\Http\Kernel::class,
+    App\Http\Kernel::class
+);
+
+
+// console处理
+$app-&gt;singleton(
+    Illuminate\Contracts\Console\Kernel::class,
+    App\Console\Kernel::class
+);
+
+
+// 异常处理
+$app-&gt;singleton(
+    Illuminate\Contracts\Debug\ExceptionHandler::class,
+    App\Exceptions\Handler::class
+);
+</code></pre></li>
+
+<li><p>创建Kernel，注意这里是基于接口来创建， 最终创建什么实例， 依赖于前面的接口绑定。</p>
+
+<pre><code class="language-php">$kernel = $app-&gt;make(Illuminate\Contracts\Http\Kernel::class);
+</code></pre>
+
+<ul>
+<li>这个代码最终实例化的是App\Http\Kernel，App\Http\Kernel继承自Illuminate\Foundation\Http\Kernel。</li>
+
+<li><p>接口绑定是laravel框架设计精华所在，laravel框架的核心组件全部都实现了接口，在laravel里统一放在Contracts下。这给予了开发者极大的自由，可以在程序中通过修改接口绑定来改变组件的实现。</p>
+
+<pre><code class="language-bash">chunfang@office:~/base.account$ ls vendor/laravel/framework/src/Illuminate/Contracts/
+Auth          Bus    composer.json  Console    Cookie    Debug       Events
+Foundation  Http     Mail        Pipeline  Redis    Support     View
+Broadcasting  Cache  Config         Container  Database  Encryption  Filesystem
+Hashing     Logging  Pagination  Queue     Routing  Validation
+</code></pre></li>
+</ul></li>
+
+<li><p>基于全局变量创建request对象， 交由Kernel处理， 这是请求处理的核心所在。</p>
+
+<ul>
+<li><p>基于全局变量创建请求</p>
+
+<pre><code class="language-php">$request = Illuminate\Http\Request::capture()
+</code></pre></li>
+
+<li><p>Kerner处理request</p>
+
+<pre><code class="language-php">$response = $kernel-&gt;handle($request);
+</code></pre>
+
+<p>请求方法关键细节：</p>
+
+<pre><code class="language-php">public function handle($request)
+{
+    try {
+        // 允许使用_method来模拟PUT，DELETE等
+        $request-&gt;enableHttpMethodParameterOverride();
+
+
+        // 处理请求返回响应
+        $response = $this-&gt;sendRequestThroughRouter($request);
+    } catch (Exception $e) {
+        $this-&gt;reportException($e);
+
+
+        $response = $this-&gt;renderException($request, $e);
+    } catch (Throwable $e) {
+        $this-&gt;reportException($e = new FatalThrowableError($e));
+
+
+        $response = $this-&gt;renderException($request, $e);
+    }
+
+
+    // 发射事件
+    $this-&gt;app['events']-&gt;fire('kernel.handled', [$request, $response]);
+
+
+    return $response;
+}
+
+
+</code></pre>
+
+<p>处理请求返回响应关键细节：</p>
+
+<pre><code class="language-php">protected function sendRequestThroughRouter($request)
+{
+    $this-&gt;app-&gt;instance('request', $request);
+
+
+    Facade::clearResolvedInstance('request');
+
+
+    // 初始化请求资源
+    $this-&gt;bootstrap();
+
+
+    // 流水线处理
+    return (new Pipeline($this-&gt;app))
+                -&gt;send($request)
+                -&gt;through($this-&gt;app-&gt;shouldSkipMiddleware() ? [] : $this-&gt;middleware)
+                -&gt;then($this-&gt;dispatchToRouter());
+}
+</code></pre>
+
+<p>初始化资源关键细节：</p>
+
+<pre><code class="language-php">protected $bootstrappers = [
+    'Illuminate\Foundation\Bootstrap\DetectEnvironment',
+    'Illuminate\Foundation\Bootstrap\LoadConfiguration',
+    'Illuminate\Foundation\Bootstrap\ConfigureLogging',
+    'Illuminate\Foundation\Bootstrap\HandleExceptions',
+    'Illuminate\Foundation\Bootstrap\RegisterFacades',
+    'Illuminate\Foundation\Bootstrap\RegisterProviders',
+    'Illuminate\Foundation\Bootstrap\BootProviders',
+];
+</code></pre>
+
+<p>流水线实现细节：
+<a href="http://www.jianshu.com/p/3c2791a525d0">理解Laravel中的pipeline</a></p>
+
+<p>路由处理关键细节：</p>
+
+<pre><code class="language-php">public function dispatch(Request $request)
+{
+    $this-&gt;currentRequest = $request;
+
+
+    $response = $this-&gt;dispatchToRoute($request);
+
+
+    return $this-&gt;prepareResponse($request, $response);
+}
+</code></pre>
+
+<pre><code class="language-php">public function dispatchToRoute(Request $request)
+{
+    // First we will find a route that matches this request. We will also set the
+    // route resolver on the request so middlewares assigned to the route will
+    // receive access to this route instance for checking of the parameters.
+    $route = $this-&gt;findRoute($request);
+
+
+    $request-&gt;setRouteResolver(function () use ($route) {
+        return $route;
+    });
+
+
+    $this-&gt;events-&gt;fire(new Events\RouteMatched($route, $request));
+
+
+    $response = $this-&gt;runRouteWithinStack($route, $request);
+
+
+    return $this-&gt;prepareResponse($request, $response);
+}
+</code></pre>
+
+<p>路由执行实际动作关键细节：</p>
+
+<pre><code class="language-php">public function run(Request $request)
+{
+    $this-&gt;container = $this-&gt;container ?: new Container;
+
+
+    try {
+        if (! is_string($this-&gt;action['uses'])) {
+            return $this-&gt;runCallable($request);
+        }
+
+
+        return $this-&gt;runController($request);
+    } catch (HttpResponseException $e) {
+        return $e-&gt;getResponse();
+    }
+}
+</code></pre></li>
+</ul></li>
+
+<li><p>输出到客户端</p>
+
+<pre><code class="language-php">$response-&gt;send();
+</code></pre></li>
+
+<li><p>依次调用结束动作</p>
+
+<pre><code class="language-php">$kernel-&gt;terminate($request, $response);
+</code></pre>
+
+<h1 id="ioc容器的实现:9342adb7b594d3cbcff5efa79997fd88">IOC容器的实现</h1>
+
+<p>编写中</p>
+
+<h1 id="实现自己的路由替代laravel路由:9342adb7b594d3cbcff5efa79997fd88">实现自己的路由替代Laravel路由</h1>
+
+<p>编写中</p>
+
+<h1 id="浅析资源初始化:9342adb7b594d3cbcff5efa79997fd88">浅析资源初始化</h1>
+
+<p>编写中</p>
+
+<h1 id="laravel-pipeline的实现:9342adb7b594d3cbcff5efa79997fd88">Laravel Pipeline的实现</h1>
+
+<p>编写中</p>
+
+<h1 id="基于stone实现高性能kernel:9342adb7b594d3cbcff5efa79997fd88">基于Stone实现高性能Kernel</h1>
+
+<p>编写中</p></li>
+</ol>
+
+</div>
+
+        <footer class="post-footer clearfix">
+    
+
+    <div class="share">
+        <a class="icon-twitter" href="http://twitter.com/share?text=%e5%88%86%e6%9e%90%ef%bc%8c%e7%90%86%e8%a7%a3%ef%bc%8c%e4%bc%98%e5%8c%96Laravel&url=http%3a%2f%2fchefxu.github.io%2fpost%2fdeepin_laravel%2f"
+            onclick="window.open(this.href, 'twitter-share', 'width=550,height=235');return false;">
+            <i class="fa fa-twitter"></i>
+            <span class="hidden">Twitter</span>
+        </a>
+
+        <a class="icon-facebook" href="https://www.facebook.com/sharer/sharer.php?u=http%3a%2f%2fchefxu.github.io%2fpost%2fdeepin_laravel%2f"
+            onclick="window.open(this.href, 'facebook-share','width=580,height=296');return false;">
+            <i class="fa fa-facebook"></i>
+            <span class="hidden">Facebook</span>
+        </a>
+
+        <a class="icon-google-plus" href="https://plus.google.com/share?url=http%3a%2f%2fchefxu.github.io%2fpost%2fdeepin_laravel%2f"
+           onclick="window.open(this.href, 'google-plus-share', 'width=490,height=530');return false;">
+           <i class="fa fa-google-plus"></i>
+            <span class="hidden">Google+</span>
+        </a>
+    </div>
+</footer>
+
+        
+    </article>
+</div>
+
+            </div>
+        </div>
+
+        <footer class="footer">
+            <div class="container">
+                <div class="site-title-wrapper">
+                    <h1 class="site-title">
+                        <a title="代码苦旅" href="http://chefxu.github.io/">代码苦旅</a>
+                    </h1>
+                    <a class="button-square button-jump-top js-jump-top" href="#">
+                        <i class="fa fa-angle-up"></i>
+                    </a>
+                </div>
+
+                <p class="footer-copyright">
+                    <span>&copy; 2016 / Powered by <a href="http://gohugo.io/">Hugo</a></span>
+                </p>
+                <p class="footer-copyright">
+                    <span><a href="https://github.com/roryg/ghostwriter">Ghostwriter theme</a> By <a href="http://jollygoodthemes.com">JollyGoodThemes</a></span>
+                    <span>/ <a href="https://github.com/jbub/ghostwriter">Ported</a> to Hugo By <a href="https://github.com/jbub">jbub</a></span>
+                </p>
+            </div>
+        </footer>
+
+        <script src="http://chefxu.github.io/js/jquery-1.11.3.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.5/highlight.min.js"></script>
+        <script src="http://chefxu.github.io/js/jquery.fitvids.js"></script>
+        <script src="http://chefxu.github.io/js/scripts.js"></script>
+    </body>
+</html>
+

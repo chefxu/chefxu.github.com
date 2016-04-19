@@ -1,0 +1,272 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>代码苦旅</title>
+    <link>http://chefxu.github.io/</link>
+    <description>Recent content on 代码苦旅</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-us</language>
+    <lastBuildDate>Tue, 19 Apr 2016 19:44:07 +0800</lastBuildDate>
+    <atom:link href="http://chefxu.github.io/index.xml" rel="self" type="application/rss+xml" />
+    
+    <item>
+      <title>分析，理解，优化Laravel</title>
+      <link>http://chefxu.github.io/post/deepin_laravel/</link>
+      <pubDate>Tue, 19 Apr 2016 19:44:07 +0800</pubDate>
+      
+      <guid>http://chefxu.github.io/post/deepin_laravel/</guid>
+      <description>
+
+&lt;h1 id=&#34;前言:9342adb7b594d3cbcff5efa79997fd88&#34;&gt;前言&lt;/h1&gt;
+
+&lt;p&gt;使用Laravel接近两年了， 从4.2到现在的5.2。大多数情况下，Laravel都能很好的支撑我们的系统。不管你是否使用或打算使用， 了解Laravel的设计对于提高程序水平也很有帮助。本文是我的一个学习laravel的过程， 也是我实现高性能server &lt;a href=&#34;https://github.com/chefxu/stone&#34;&gt;stone&lt;/a&gt;下一个目标的过程。限于本人水平有限，错误在所难免，希望大家不吝指正。&lt;/p&gt;
+
+&lt;p&gt;&lt;em&gt;注：因为是边写边改， 所以内容目录随时会有调整。&lt;/em&gt;&lt;/p&gt;
+
+&lt;h1 id=&#34;一个http请求的执行流程:9342adb7b594d3cbcff5efa79997fd88&#34;&gt;一个HTTP请求的执行流程&lt;/h1&gt;
+
+&lt;ol&gt;
+&lt;li&gt;&lt;p&gt;创建app， app本质上是一个ioc容器（Illuminate\Container\Container），这个概念对于laravel很重要，laravel的核心组件都会注册到这个容器里面。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-php&#34;&gt;$app = new Illuminate\Foundation\Application(
+    realpath(__DIR__.&#39;/../&#39;)
+);
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;ul&gt;
+&lt;li&gt;初始化全局ioc容器app， 并把自己本身注册进去&lt;/li&gt;
+&lt;li&gt;注册基本的Service Provider: EventServiceProvider, RoutingServiceProvider&lt;/li&gt;
+&lt;li&gt;注册核心的class别名，参看：registerCoreContainerAliases&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;核心接口绑定， 如果需替换自己实现的Kernel， 可以修改这里。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-php&#34;&gt;// http处理
+$app-&amp;gt;singleton(
+    Illuminate\Contracts\Http\Kernel::class,
+    App\Http\Kernel::class
+);
+
+
+// console处理
+$app-&amp;gt;singleton(
+    Illuminate\Contracts\Console\Kernel::class,
+    App\Console\Kernel::class
+);
+
+
+// 异常处理
+$app-&amp;gt;singleton(
+    Illuminate\Contracts\Debug\ExceptionHandler::class,
+    App\Exceptions\Handler::class
+);
+&lt;/code&gt;&lt;/pre&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;创建Kernel，注意这里是基于接口来创建， 最终创建什么实例， 依赖于前面的接口绑定。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-php&#34;&gt;$kernel = $app-&amp;gt;make(Illuminate\Contracts\Http\Kernel::class);
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;ul&gt;
+&lt;li&gt;这个代码最终实例化的是App\Http\Kernel，App\Http\Kernel继承自Illuminate\Foundation\Http\Kernel。&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;接口绑定是laravel框架设计精华所在，laravel框架的核心组件全部都实现了接口，在laravel里统一放在Contracts下。这给予了开发者极大的自由，可以在程序中通过修改接口绑定来改变组件的实现。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;chunfang@office:~/base.account$ ls vendor/laravel/framework/src/Illuminate/Contracts/
+Auth          Bus    composer.json  Console    Cookie    Debug       Events
+Foundation  Http     Mail        Pipeline  Redis    Support     View
+Broadcasting  Cache  Config         Container  Database  Encryption  Filesystem
+Hashing     Logging  Pagination  Queue     Routing  Validation
+&lt;/code&gt;&lt;/pre&gt;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;基于全局变量创建request对象， 交由Kernel处理， 这是请求处理的核心所在。&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;基于全局变量创建请求&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-php&#34;&gt;$request = Illuminate\Http\Request::capture()
+&lt;/code&gt;&lt;/pre&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Kerner处理request&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-php&#34;&gt;$response = $kernel-&amp;gt;handle($request);
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;请求方法关键细节：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-php&#34;&gt;public function handle($request)
+{
+    try {
+        // 允许使用_method来模拟PUT，DELETE等
+        $request-&amp;gt;enableHttpMethodParameterOverride();
+
+
+        // 处理请求返回响应
+        $response = $this-&amp;gt;sendRequestThroughRouter($request);
+    } catch (Exception $e) {
+        $this-&amp;gt;reportException($e);
+
+
+        $response = $this-&amp;gt;renderException($request, $e);
+    } catch (Throwable $e) {
+        $this-&amp;gt;reportException($e = new FatalThrowableError($e));
+
+
+        $response = $this-&amp;gt;renderException($request, $e);
+    }
+
+
+    // 发射事件
+    $this-&amp;gt;app[&#39;events&#39;]-&amp;gt;fire(&#39;kernel.handled&#39;, [$request, $response]);
+
+
+    return $response;
+}
+
+
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;处理请求返回响应关键细节：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-php&#34;&gt;protected function sendRequestThroughRouter($request)
+{
+    $this-&amp;gt;app-&amp;gt;instance(&#39;request&#39;, $request);
+
+
+    Facade::clearResolvedInstance(&#39;request&#39;);
+
+
+    // 初始化请求资源
+    $this-&amp;gt;bootstrap();
+
+
+    // 流水线处理
+    return (new Pipeline($this-&amp;gt;app))
+                -&amp;gt;send($request)
+                -&amp;gt;through($this-&amp;gt;app-&amp;gt;shouldSkipMiddleware() ? [] : $this-&amp;gt;middleware)
+                -&amp;gt;then($this-&amp;gt;dispatchToRouter());
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;初始化资源关键细节：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-php&#34;&gt;protected $bootstrappers = [
+    &#39;Illuminate\Foundation\Bootstrap\DetectEnvironment&#39;,
+    &#39;Illuminate\Foundation\Bootstrap\LoadConfiguration&#39;,
+    &#39;Illuminate\Foundation\Bootstrap\ConfigureLogging&#39;,
+    &#39;Illuminate\Foundation\Bootstrap\HandleExceptions&#39;,
+    &#39;Illuminate\Foundation\Bootstrap\RegisterFacades&#39;,
+    &#39;Illuminate\Foundation\Bootstrap\RegisterProviders&#39;,
+    &#39;Illuminate\Foundation\Bootstrap\BootProviders&#39;,
+];
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;流水线实现细节：
+&lt;a href=&#34;http://www.jianshu.com/p/3c2791a525d0&#34;&gt;理解Laravel中的pipeline&lt;/a&gt;&lt;/p&gt;
+
+&lt;p&gt;路由处理关键细节：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-php&#34;&gt;public function dispatch(Request $request)
+{
+    $this-&amp;gt;currentRequest = $request;
+
+
+    $response = $this-&amp;gt;dispatchToRoute($request);
+
+
+    return $this-&amp;gt;prepareResponse($request, $response);
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-php&#34;&gt;public function dispatchToRoute(Request $request)
+{
+    // First we will find a route that matches this request. We will also set the
+    // route resolver on the request so middlewares assigned to the route will
+    // receive access to this route instance for checking of the parameters.
+    $route = $this-&amp;gt;findRoute($request);
+
+
+    $request-&amp;gt;setRouteResolver(function () use ($route) {
+        return $route;
+    });
+
+
+    $this-&amp;gt;events-&amp;gt;fire(new Events\RouteMatched($route, $request));
+
+
+    $response = $this-&amp;gt;runRouteWithinStack($route, $request);
+
+
+    return $this-&amp;gt;prepareResponse($request, $response);
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;路由执行实际动作关键细节：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-php&#34;&gt;public function run(Request $request)
+{
+    $this-&amp;gt;container = $this-&amp;gt;container ?: new Container;
+
+
+    try {
+        if (! is_string($this-&amp;gt;action[&#39;uses&#39;])) {
+            return $this-&amp;gt;runCallable($request);
+        }
+
+
+        return $this-&amp;gt;runController($request);
+    } catch (HttpResponseException $e) {
+        return $e-&amp;gt;getResponse();
+    }
+}
+&lt;/code&gt;&lt;/pre&gt;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;输出到客户端&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-php&#34;&gt;$response-&amp;gt;send();
+&lt;/code&gt;&lt;/pre&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;依次调用结束动作&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-php&#34;&gt;$kernel-&amp;gt;terminate($request, $response);
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h1 id=&#34;ioc容器的实现:9342adb7b594d3cbcff5efa79997fd88&#34;&gt;IOC容器的实现&lt;/h1&gt;
+
+&lt;p&gt;编写中&lt;/p&gt;
+
+&lt;h1 id=&#34;实现自己的路由替代laravel路由:9342adb7b594d3cbcff5efa79997fd88&#34;&gt;实现自己的路由替代Laravel路由&lt;/h1&gt;
+
+&lt;p&gt;编写中&lt;/p&gt;
+
+&lt;h1 id=&#34;浅析资源初始化:9342adb7b594d3cbcff5efa79997fd88&#34;&gt;浅析资源初始化&lt;/h1&gt;
+
+&lt;p&gt;编写中&lt;/p&gt;
+
+&lt;h1 id=&#34;laravel-pipeline的实现:9342adb7b594d3cbcff5efa79997fd88&#34;&gt;Laravel Pipeline的实现&lt;/h1&gt;
+
+&lt;p&gt;编写中&lt;/p&gt;
+
+&lt;h1 id=&#34;基于stone实现高性能kernel:9342adb7b594d3cbcff5efa79997fd88&#34;&gt;基于Stone实现高性能Kernel&lt;/h1&gt;
+
+&lt;p&gt;编写中&lt;/p&gt;&lt;/li&gt;
+&lt;/ol&gt;
+</description>
+    </item>
+    
+    <item>
+      <title>test post</title>
+      <link>http://chefxu.github.io/post/test/</link>
+      <pubDate>Tue, 19 Apr 2016 19:04:07 +0800</pubDate>
+      
+      <guid>http://chefxu.github.io/post/test/</guid>
+      <description>
+
+&lt;h1 id=&#34;hello-world:b128b7694e4de962e0088bcb1bcb254f&#34;&gt;hello world&lt;/h1&gt;
+</description>
+    </item>
+    
+  </channel>
+</rss>
