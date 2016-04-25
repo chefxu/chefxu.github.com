@@ -6,8 +6,46 @@
     <description>Recent content in Posts on 代码苦旅</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Tue, 19 Apr 2016 19:44:07 +0800</lastBuildDate>
+    <lastBuildDate>Sat, 23 Apr 2016 00:25:08 +0800</lastBuildDate>
     <atom:link href="http://chefxu.github.io/post/index.xml" rel="self" type="application/rss+xml" />
+    
+    <item>
+      <title>关于Stone的一些计划</title>
+      <link>http://chefxu.github.io/post/stone_roadmap/</link>
+      <pubDate>Sat, 23 Apr 2016 00:25:08 +0800</pubDate>
+      
+      <guid>http://chefxu.github.io/post/stone_roadmap/</guid>
+      <description>
+
+&lt;h1 id=&#34;关于:ba2bc2ee0383c786486da34d2d96d326&#34;&gt;关于&lt;/h1&gt;
+
+&lt;p&gt;Stone是我在趣分期工作中发起的一个性能优化的项目，旨在解决基于laravel编写的接口的性能问题。根据我的经验，在一台8核的PC上，一个laravel的&amp;rdquo;hello，world&amp;rdquo;程序， RPS也只有100多。&lt;/p&gt;
+
+&lt;blockquote&gt;
+&lt;p&gt;已经开启opcode cache， 关闭debug， 运行 php ./artisan optimize 优化过&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;年底的时候要求给出一个流量提升10倍的解决方案， 于是就有了Stone这个项目。 Stone最开始是定位于一个TCP业务Server。使用lumen对外提供HTTP接口。目前已经支撑了核心业务白条接口的请求以及一些读写cookie的请求。目前请求次数已经超过13亿次， 两台服务器，负载都很低。&lt;/p&gt;
+
+&lt;h1 id=&#34;目前的一些进展:ba2bc2ee0383c786486da34d2d96d326&#34;&gt;目前的一些进展&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;实现了FastCGI协议， 直接与nginx通信， 摆脱了lumen的依赖， 性能高达7500RPS&lt;/li&gt;
+&lt;li&gt;实现了基于Unix domain socket的进程通信， 进一步提高性能10%&lt;/li&gt;
+&lt;li&gt;实现了基本的RAML接口设计规范&lt;/li&gt;
+&lt;li&gt;适配Laravel5.1框架进展顺利&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h1 id=&#34;计划:ba2bc2ee0383c786486da34d2d96d326&#34;&gt;计划&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;将拆分为两部分， Stone-Web和Stone-API，名字暂定。&lt;/li&gt;
+&lt;li&gt;Stone-Web目标100%兼容laravel5.1，提升laravel框架性能10倍以上，让大象可以优雅地跳舞&lt;/li&gt;
+&lt;li&gt;Stone-API专注于高性能API，围绕RAML规范，打造一整套API设计工具集&lt;/li&gt;
+&lt;li&gt;持续反馈Swoole社区&lt;/li&gt;
+&lt;/ul&gt;
+</description>
+    </item>
     
     <item>
       <title>分析，理解，优化Laravel</title>
@@ -235,7 +273,7 @@ Hashing     Logging  Pagination  Queue     Routing  Validation
 
 &lt;h1 id=&#34;ioc容器的实现:9342adb7b594d3cbcff5efa79997fd88&#34;&gt;IOC容器的实现&lt;/h1&gt;
 
-&lt;p&gt;编写中&lt;/p&gt;
+&lt;p&gt;&lt;a href=&#34;http://code.tutsplus.com/tutorials/digging-in-to-laravels-ioc-container--cms-22167&#34;&gt;Digging in to Laravel&amp;rsquo;s IoC Container&lt;/a&gt;&lt;/p&gt;
 
 &lt;h1 id=&#34;实现自己的路由替代laravel路由:9342adb7b594d3cbcff5efa79997fd88&#34;&gt;实现自己的路由替代Laravel路由&lt;/h1&gt;
 

@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+        <title>关于Stone的一些计划 &middot; </title>
+        <meta name="description" content="">
+        <meta name="HandheldFriendly" content="True">
+        <meta name="MobileOptimized" content="320">
+        <meta name="generator" content="Hugo 0.15" />
+        <meta name="robots" content="index,follow">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="stylesheet" href="http://chefxu.github.io/css/normalize.css">
+        <link rel="stylesheet" href="http://chefxu.github.io/css/highlight.css">
+        <link rel="stylesheet" href="http://chefxu.github.io/css/style.css">
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,400,600,700,300&subset=latin,cyrillic-ext,latin-ext,cyrillic">
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
+    </head>
+    <body>
+        
+
+        <div id="wrapper">
+            <header class="site-header">
+                <div class="container">
+                    <div class="site-title-wrapper">
+                        
+                            <h1 class="site-title">
+                                <a title="代码苦旅" href="http://chefxu.github.io/">代码苦旅</a>
+                            </h1>
+                        
+                        <a class="button-square" href="http://chefxu.github.io/index.xml"><i class="fa fa-rss"></i></a>
+                        
+                        
+                        
+                        
+                        
+                    </div>
+
+                    <ul class="site-nav">
+                        
+                    </ul>
+                </div>
+            </header>
+
+            <div id="container">
+
+
+<div class="container">
+    <article class="post-container" itemscope="" itemtype="http://schema.org/BlogPosting">
+        <header class="post-header">
+    <h1 class="post-title" itemprop="name headline">关于Stone的一些计划</h1>
+    
+    <p class="post-date">
+        <span>Published <time datetime="2016-04-23" itemprop="datePublished">Sat, Apr 23, 2016</time></span>
+        <span>by</span>
+        <span itemscope="" itemprop="author" itemtype="http://schema.org/Person">
+            <span itemprop="name">
+                <a href="" itemprop="url" rel="author"></a>
+            </span>
+        </span>
+    </p>
+</header>
+
+        <div class="post-content clearfix" itemprop="articleBody">
+    
+
+    
+
+<h1 id="关于:ba2bc2ee0383c786486da34d2d96d326">关于</h1>
+
+<p>Stone是我在趣分期工作中发起的一个性能优化的项目，旨在解决基于laravel编写的接口的性能问题。根据我的经验，在一台8核的PC上，一个laravel的&rdquo;hello，world&rdquo;程序， RPS也只有100多。</p>
+
+<blockquote>
+<p>已经开启opcode cache， 关闭debug， 运行 php ./artisan optimize 优化过</p>
+</blockquote>
+
+<p>年底的时候要求给出一个流量提升10倍的解决方案， 于是就有了Stone这个项目。 Stone最开始是定位于一个TCP业务Server。使用lumen对外提供HTTP接口。目前已经支撑了核心业务白条接口的请求以及一些读写cookie的请求。目前请求次数已经超过13亿次， 两台服务器，负载都很低。</p>
+
+<h1 id="目前的一些进展:ba2bc2ee0383c786486da34d2d96d326">目前的一些进展</h1>
+
+<ul>
+<li>实现了FastCGI协议， 直接与nginx通信， 摆脱了lumen的依赖， 性能高达7500RPS</li>
+<li>实现了基于Unix domain socket的进程通信， 进一步提高性能10%</li>
+<li>实现了基本的RAML接口设计规范</li>
+<li>适配Laravel5.1框架进展顺利</li>
+</ul>
+
+<h1 id="计划:ba2bc2ee0383c786486da34d2d96d326">计划</h1>
+
+<ul>
+<li>将拆分为两部分， Stone-Web和Stone-API，名字暂定。</li>
+<li>Stone-Web目标100%兼容laravel5.1，提升laravel框架性能10倍以上，让大象可以优雅地跳舞</li>
+<li>Stone-API专注于高性能API，围绕RAML规范，打造一整套API设计工具集</li>
+<li>持续反馈Swoole社区</li>
+</ul>
+
+</div>
+
+        <footer class="post-footer clearfix">
+    
+
+    <div class="share">
+        <a class="icon-twitter" href="http://twitter.com/share?text=%e5%85%b3%e4%ba%8eStone%e7%9a%84%e4%b8%80%e4%ba%9b%e8%ae%a1%e5%88%92&url=http%3a%2f%2fchefxu.github.io%2fpost%2fstone_roadmap%2f"
+            onclick="window.open(this.href, 'twitter-share', 'width=550,height=235');return false;">
+            <i class="fa fa-twitter"></i>
+            <span class="hidden">Twitter</span>
+        </a>
+
+        <a class="icon-facebook" href="https://www.facebook.com/sharer/sharer.php?u=http%3a%2f%2fchefxu.github.io%2fpost%2fstone_roadmap%2f"
+            onclick="window.open(this.href, 'facebook-share','width=580,height=296');return false;">
+            <i class="fa fa-facebook"></i>
+            <span class="hidden">Facebook</span>
+        </a>
+
+        <a class="icon-google-plus" href="https://plus.google.com/share?url=http%3a%2f%2fchefxu.github.io%2fpost%2fstone_roadmap%2f"
+           onclick="window.open(this.href, 'google-plus-share', 'width=490,height=530');return false;">
+           <i class="fa fa-google-plus"></i>
+            <span class="hidden">Google+</span>
+        </a>
+    </div>
+</footer>
+
+        
+    </article>
+</div>
+
+            </div>
+        </div>
+
+        <footer class="footer">
+            <div class="container">
+                <div class="site-title-wrapper">
+                    <h1 class="site-title">
+                        <a title="代码苦旅" href="http://chefxu.github.io/">代码苦旅</a>
+                    </h1>
+                    <a class="button-square button-jump-top js-jump-top" href="#">
+                        <i class="fa fa-angle-up"></i>
+                    </a>
+                </div>
+
+                <p class="footer-copyright">
+                    <span>&copy; 2016 / Powered by <a href="http://gohugo.io/">Hugo</a></span>
+                </p>
+                <p class="footer-copyright">
+                    <span><a href="https://github.com/roryg/ghostwriter">Ghostwriter theme</a> By <a href="http://jollygoodthemes.com">JollyGoodThemes</a></span>
+                    <span>/ <a href="https://github.com/jbub/ghostwriter">Ported</a> to Hugo By <a href="https://github.com/jbub">jbub</a></span>
+                </p>
+            </div>
+        </footer>
+
+        <script src="http://chefxu.github.io/js/jquery-1.11.3.min.js"></script>
+        <script src="http://cdn.bootcss.com/highlight.js/8.0/highlight.min.js"></script>
+        <script src="http://chefxu.github.io/js/jquery.fitvids.js"></script>
+        <script src="http://chefxu.github.io/js/scripts.js"></script>
+    </body>
+</html>
+
