@@ -6,8 +6,71 @@
     <description>Recent content in Posts on 代码苦旅</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Sat, 23 Apr 2016 00:25:08 +0800</lastBuildDate>
+    <lastBuildDate>Mon, 02 May 2016 15:38:50 +0800</lastBuildDate>
     <atom:link href="http://chefxu.github.io/post/index.xml" rel="self" type="application/rss+xml" />
+    
+    <item>
+      <title>stone alpha版发布</title>
+      <link>http://chefxu.github.io/post/stone-alpha/</link>
+      <pubDate>Mon, 02 May 2016 15:38:50 +0800</pubDate>
+      
+      <guid>http://chefxu.github.io/post/stone-alpha/</guid>
+      <description>
+
+&lt;p&gt;#Stone的由来
+Stone最初的目的是为了解决Laravel框架的性能问题， 公司是Laravel框架的重度使用者，在绝大多数场合， Laravel都可以很好的应对，但是对于一些并发量高的应用，比如定时抢购的活动， 存在一些问题。问题的根本原因是：Laravel框架本身性能不高， 由于PHP程序执行机制的特殊性，框架的性能会极大的限制程序的并发能力，这一点相信很多选择或者没选择Laravel的人都有体会。去年年底， 在解决一个性能问题的时候， 尝试性的使用Laravel+Swoole的组合搭建一个TCP的业务Server， 在Laravel资源完全初始化的情况下， 使用Swoole常驻内存并对外提供服务， 这样每个请求就不必再去初始化资源， 从而得到极高的性能提升。然后， 需要对前端提供接口， 所以TCP Server前面再放置一个lumen，对外提供HTTP接口服务。为了便于管理， 我给这个方案取了一个名字：Stone，希望它能稳定发展， 成为性能解决方案的一块基石。&lt;/p&gt;
+
+&lt;p&gt;到目前为止，Stone作为接口的方式已经在线上稳定运行超过3个月，有一些很重要的接口也在使用。这里面， 需要重点赞一下&lt;a href=&#34;http://www.swoole.com/&#34;&gt;Swoole&lt;/a&gt;，因为是有了swoole的高性能和稳定， 才有后面的这些事情。&lt;/p&gt;
+
+&lt;p&gt;#早期Stone的一些缺陷
+早期Stone的方案缺陷主要体现在两方面：&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;&lt;p&gt;程序架构变得复杂，加大测试难度，同时并发性能受限于lumen。&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;PHP以简单快速得到大家喜爱， lumen的方式， 程序被分离到laravel和lumen中，加大管理难度。&lt;/li&gt;
+&lt;li&gt;Swoole常驻内存， 修改调试需要不断重启进程&lt;/li&gt;
+&lt;li&gt;lumen虽然性能不算差， 但是和swoole比起来相差还是很远， 并发要求很高的场合， 还是会成为瓶颈&lt;/li&gt;
+&lt;li&gt;当方案出现问题时， 无法快速降级&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;适用范围较窄&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;只适用一些无状态的接口调用的方式&lt;/li&gt;
+&lt;li&gt;不支持视图显示， 不支持Session&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;h1 id=&#34;stone近期的工作:df9104273865eb60abece7dc4c3e68c4&#34;&gt;Stone近期的工作&lt;/h1&gt;
+
+&lt;p&gt;可以参看之前写的一个&lt;a href=&#34;http://chefxu.github.io/post/stone_roadmap/&#34;&gt;优化计划&lt;/a&gt;， 目前基本达到的预期的效果。
+主要工作为：&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;提高了Stone的适用性， 提供Stone-Web和Stone-Server两种运行方案。前者针对页面后者针对API服务。&lt;/li&gt;
+&lt;li&gt;加强了Stone的兼容性，提供Laravel4.x和Laravel5.x的支持， 支持composer安装&lt;/li&gt;
+&lt;li&gt;避免修改Laravel代码，代价是引入了对runkit的依赖， 但是我认为是值得的。 当然， 如果你不方便使用runkit，倾向于修改laravel源码， 也是可以的。&lt;/li&gt;
+&lt;li&gt;简化了架构， 去除了lumen的依赖， 实现了FastCGI协议， 直接和nginx交互， 大大提高了性能。&lt;/li&gt;
+&lt;li&gt;大大简化了使用难度和降级难度， 极小的修改后使用Stone进程替代PHP-FPM就能使用， 降级时替换回来即可。你甚至可以同时使用两种方式， 同一份代码， 只有性能要求高的接口才使用Stone。&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;h1 id=&#34;关于stone的一些测试数据:df9104273865eb60abece7dc4c3e68c4&#34;&gt;关于Stone的一些测试数据&lt;/h1&gt;
+
+&lt;ol&gt;
+&lt;li&gt;线上核心接口请求次数累计超过20亿次，运行稳定&lt;/li&gt;
+&lt;li&gt;Laravel5下测试，Stone-Web RPS大于3000， Stone-Server RPS大于8500，同等条件下，原始的Laravel RPS只有120.&lt;/li&gt;
+&lt;li&gt;线上运行超过2年的Laravel4 项目， 包括2000多个路由， 大量的过滤器等， Stone-Web RPS大于1000， 同等条件下， Laravel RPS只有80多。&lt;/li&gt;
+&lt;li&gt;一个实际项目的首页， 包含大量的数据库查询， Stone-Web RPS 为360多， 同等条件下， Laravel RPS只有30多。&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;h1 id=&#34;进一步了解stone:df9104273865eb60abece7dc4c3e68c4&#34;&gt;进一步了解Stone&lt;/h1&gt;
+
+&lt;p&gt;只需5分钟， 为你的Laravel项目提供10倍以上的性能提升， 不想试试吗？
+如果你对此感兴趣， 可以继续了解Stone是怎么优化Laravel性能的。&lt;/p&gt;
+</description>
+    </item>
     
     <item>
       <title>关于Stone的一些计划</title>
@@ -19,13 +82,13 @@
 
 &lt;h1 id=&#34;关于:ba2bc2ee0383c786486da34d2d96d326&#34;&gt;关于&lt;/h1&gt;
 
-&lt;p&gt;Stone是我在趣分期工作中发起的一个性能优化的项目，旨在解决基于laravel编写的接口的性能问题。根据我的经验，在一台8核的PC上，一个laravel的&amp;rdquo;hello，world&amp;rdquo;程序， RPS也只有100多。&lt;/p&gt;
+&lt;p&gt;Stone是我在&lt;a href=&#34;http://www.qufenqi.com&#34;&gt;趣分期&lt;/a&gt;工作中发起的一个性能优化的项目，旨在解决基于laravel编写的接口的性能问题。根据之前的使用经验，在一台8核的PC上，一个laravel的&amp;rdquo;hello，world&amp;rdquo;程序， RPS也只有100多。&lt;/p&gt;
 
 &lt;blockquote&gt;
 &lt;p&gt;已经开启opcode cache， 关闭debug， 运行 php ./artisan optimize 优化过&lt;/p&gt;
 &lt;/blockquote&gt;
 
-&lt;p&gt;年底的时候要求给出一个流量提升10倍的解决方案， 于是就有了Stone这个项目。 Stone最开始是定位于一个TCP业务Server。使用lumen对外提供HTTP接口。目前已经支撑了核心业务白条接口的请求以及一些读写cookie的请求。目前请求次数已经超过13亿次， 两台服务器，负载都很低。&lt;/p&gt;
+&lt;p&gt;15年年底的时候要求给出一个流量提升10倍的技术应对方案， 于是就有了Stone这个项目。 Stone最开始是定位于一个TCP业务Server。使用lumen对外提供HTTP接口。目前已经支撑了核心业务白条接口的请求以及一些读写cookie的请求。目前请求次数已经超过13亿次， 两台服务器，负载都很低。&lt;/p&gt;
 
 &lt;h1 id=&#34;目前的一些进展:ba2bc2ee0383c786486da34d2d96d326&#34;&gt;目前的一些进展&lt;/h1&gt;
 

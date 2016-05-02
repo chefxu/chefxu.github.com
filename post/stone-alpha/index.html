@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+        <title>stone alpha版发布 &middot; </title>
+        <meta name="description" content="">
+        <meta name="HandheldFriendly" content="True">
+        <meta name="MobileOptimized" content="320">
+        <meta name="generator" content="Hugo 0.15" />
+        <meta name="robots" content="index,follow">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="stylesheet" href="http://chefxu.github.io/css/normalize.css">
+        <link rel="stylesheet" href="http://chefxu.github.io/css/highlight.css">
+        <link rel="stylesheet" href="http://chefxu.github.io/css/style.css">
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,400,600,700,300&subset=latin,cyrillic-ext,latin-ext,cyrillic">
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
+    </head>
+    <body>
+        
+
+        <div id="wrapper">
+            <header class="site-header">
+                <div class="container">
+                    <div class="site-title-wrapper">
+                        
+                            <h1 class="site-title">
+                                <a title="代码苦旅" href="http://chefxu.github.io/">代码苦旅</a>
+                            </h1>
+                        
+                        <a class="button-square" href="http://chefxu.github.io/index.xml"><i class="fa fa-rss"></i></a>
+                        
+                        
+                        
+                        
+                        
+                    </div>
+
+                    <ul class="site-nav">
+                        
+                    </ul>
+                </div>
+            </header>
+
+            <div id="container">
+
+
+<div class="container">
+    <article class="post-container" itemscope="" itemtype="http://schema.org/BlogPosting">
+        <header class="post-header">
+    <h1 class="post-title" itemprop="name headline">stone alpha版发布</h1>
+    
+    <p class="post-date">
+        <span>Published <time datetime="2016-05-02" itemprop="datePublished">Mon, May 2, 2016</time></span>
+        <span>by</span>
+        <span itemscope="" itemprop="author" itemtype="http://schema.org/Person">
+            <span itemprop="name">
+                <a href="" itemprop="url" rel="author"></a>
+            </span>
+        </span>
+    </p>
+</header>
+
+        <div class="post-content clearfix" itemprop="articleBody">
+    
+
+    
+
+<p>#Stone的由来
+Stone最初的目的是为了解决Laravel框架的性能问题， 公司是Laravel框架的重度使用者，在绝大多数场合， Laravel都可以很好的应对，但是对于一些并发量高的应用，比如定时抢购的活动， 存在一些问题。问题的根本原因是：Laravel框架本身性能不高， 由于PHP程序执行机制的特殊性，框架的性能会极大的限制程序的并发能力，这一点相信很多选择或者没选择Laravel的人都有体会。去年年底， 在解决一个性能问题的时候， 尝试性的使用Laravel+Swoole的组合搭建一个TCP的业务Server， 在Laravel资源完全初始化的情况下， 使用Swoole常驻内存并对外提供服务， 这样每个请求就不必再去初始化资源， 从而得到极高的性能提升。然后， 需要对前端提供接口， 所以TCP Server前面再放置一个lumen，对外提供HTTP接口服务。为了便于管理， 我给这个方案取了一个名字：Stone，希望它能稳定发展， 成为性能解决方案的一块基石。</p>
+
+<p>到目前为止，Stone作为接口的方式已经在线上稳定运行超过3个月，有一些很重要的接口也在使用。这里面， 需要重点赞一下<a href="http://www.swoole.com/">Swoole</a>，因为是有了swoole的高性能和稳定， 才有后面的这些事情。</p>
+
+<p>#早期Stone的一些缺陷
+早期Stone的方案缺陷主要体现在两方面：</p>
+
+<ol>
+<li><p>程序架构变得复杂，加大测试难度，同时并发性能受限于lumen。</p>
+
+<ul>
+<li>PHP以简单快速得到大家喜爱， lumen的方式， 程序被分离到laravel和lumen中，加大管理难度。</li>
+<li>Swoole常驻内存， 修改调试需要不断重启进程</li>
+<li>lumen虽然性能不算差， 但是和swoole比起来相差还是很远， 并发要求很高的场合， 还是会成为瓶颈</li>
+<li>当方案出现问题时， 无法快速降级</li>
+</ul></li>
+
+<li><p>适用范围较窄</p>
+
+<ul>
+<li>只适用一些无状态的接口调用的方式</li>
+<li>不支持视图显示， 不支持Session</li>
+</ul></li>
+</ol>
+
+<h1 id="stone近期的工作:df9104273865eb60abece7dc4c3e68c4">Stone近期的工作</h1>
+
+<p>可以参看之前写的一个<a href="http://chefxu.github.io/post/stone_roadmap/">优化计划</a>， 目前基本达到的预期的效果。
+主要工作为：</p>
+
+<ol>
+<li>提高了Stone的适用性， 提供Stone-Web和Stone-Server两种运行方案。前者针对页面后者针对API服务。</li>
+<li>加强了Stone的兼容性，提供Laravel4.x和Laravel5.x的支持， 支持composer安装</li>
+<li>避免修改Laravel代码，代价是引入了对runkit的依赖， 但是我认为是值得的。 当然， 如果你不方便使用runkit，倾向于修改laravel源码， 也是可以的。</li>
+<li>简化了架构， 去除了lumen的依赖， 实现了FastCGI协议， 直接和nginx交互， 大大提高了性能。</li>
+<li>大大简化了使用难度和降级难度， 极小的修改后使用Stone进程替代PHP-FPM就能使用， 降级时替换回来即可。你甚至可以同时使用两种方式， 同一份代码， 只有性能要求高的接口才使用Stone。</li>
+</ol>
+
+<h1 id="关于stone的一些测试数据:df9104273865eb60abece7dc4c3e68c4">关于Stone的一些测试数据</h1>
+
+<ol>
+<li>线上核心接口请求次数累计超过20亿次，运行稳定</li>
+<li>Laravel5下测试，Stone-Web RPS大于3000， Stone-Server RPS大于8500，同等条件下，原始的Laravel RPS只有120.</li>
+<li>线上运行超过2年的Laravel4 项目， 包括2000多个路由， 大量的过滤器等， Stone-Web RPS大于1000， 同等条件下， Laravel RPS只有80多。</li>
+<li>一个实际项目的首页， 包含大量的数据库查询， Stone-Web RPS 为360多， 同等条件下， Laravel RPS只有30多。</li>
+</ol>
+
+<h1 id="进一步了解stone:df9104273865eb60abece7dc4c3e68c4">进一步了解Stone</h1>
+
+<p>只需5分钟， 为你的Laravel项目提供10倍以上的性能提升， 不想试试吗？
+如果你对此感兴趣， 可以继续了解Stone是怎么优化Laravel性能的。</p>
+
+</div>
+
+        <footer class="post-footer clearfix">
+    
+
+    <div class="share">
+        <a class="icon-twitter" href="http://twitter.com/share?text=stone%20alpha%e7%89%88%e5%8f%91%e5%b8%83&url=http%3a%2f%2fchefxu.github.io%2fpost%2fstone-alpha%2f"
+            onclick="window.open(this.href, 'twitter-share', 'width=550,height=235');return false;">
+            <i class="fa fa-twitter"></i>
+            <span class="hidden">Twitter</span>
+        </a>
+
+        <a class="icon-facebook" href="https://www.facebook.com/sharer/sharer.php?u=http%3a%2f%2fchefxu.github.io%2fpost%2fstone-alpha%2f"
+            onclick="window.open(this.href, 'facebook-share','width=580,height=296');return false;">
+            <i class="fa fa-facebook"></i>
+            <span class="hidden">Facebook</span>
+        </a>
+
+        <a class="icon-google-plus" href="https://plus.google.com/share?url=http%3a%2f%2fchefxu.github.io%2fpost%2fstone-alpha%2f"
+           onclick="window.open(this.href, 'google-plus-share', 'width=490,height=530');return false;">
+           <i class="fa fa-google-plus"></i>
+            <span class="hidden">Google+</span>
+        </a>
+    </div>
+</footer>
+
+        
+    </article>
+</div>
+
+            </div>
+        </div>
+
+        <footer class="footer">
+            <div class="container">
+                <div class="site-title-wrapper">
+                    <h1 class="site-title">
+                        <a title="代码苦旅" href="http://chefxu.github.io/">代码苦旅</a>
+                    </h1>
+                    <a class="button-square button-jump-top js-jump-top" href="#">
+                        <i class="fa fa-angle-up"></i>
+                    </a>
+                </div>
+
+                <p class="footer-copyright">
+                    <span>&copy; 2016 / Powered by <a href="http://gohugo.io/">Hugo</a></span>
+                </p>
+                <p class="footer-copyright">
+                    <span><a href="https://github.com/roryg/ghostwriter">Ghostwriter theme</a> By <a href="http://jollygoodthemes.com">JollyGoodThemes</a></span>
+                    <span>/ <a href="https://github.com/jbub/ghostwriter">Ported</a> to Hugo By <a href="https://github.com/jbub">jbub</a></span>
+                </p>
+            </div>
+        </footer>
+
+        <script src="http://chefxu.github.io/js/jquery-1.11.3.min.js"></script>
+        <script src="http://cdn.bootcss.com/highlight.js/8.0/highlight.min.js"></script>
+        <script src="http://chefxu.github.io/js/jquery.fitvids.js"></script>
+        <script src="http://chefxu.github.io/js/scripts.js"></script>
+    </body>
+</html>
+
