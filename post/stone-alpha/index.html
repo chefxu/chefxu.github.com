@@ -3,7 +3,7 @@
     <head>
         <meta charset="utf-8">
         <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
-        <title>stone alpha版发布 &middot; </title>
+        <title>Stone alpha版发布 &middot; </title>
         <meta name="description" content="">
         <meta name="HandheldFriendly" content="True">
         <meta name="MobileOptimized" content="320">
@@ -48,7 +48,7 @@
 <div class="container">
     <article class="post-container" itemscope="" itemtype="http://schema.org/BlogPosting">
         <header class="post-header">
-    <h1 class="post-title" itemprop="name headline">stone alpha版发布</h1>
+    <h1 class="post-title" itemprop="name headline">Stone alpha版发布</h1>
     
     <p class="post-date">
         <span>Published <time datetime="2016-05-02" itemprop="datePublished">Mon, May 2, 2016</time></span>
@@ -66,13 +66,15 @@
 
     
 
-<p>#Stone的由来
-Stone最初的目的是为了解决Laravel框架的性能问题， 公司是Laravel框架的重度使用者，在绝大多数场合， Laravel都可以很好的应对，但是对于一些并发量高的应用，比如定时抢购的活动， 存在一些问题。问题的根本原因是：Laravel框架本身性能不高， 由于PHP程序执行机制的特殊性，框架的性能会极大的限制程序的并发能力，这一点相信很多选择或者没选择Laravel的人都有体会。去年年底， 在解决一个性能问题的时候， 尝试性的使用Laravel+Swoole的组合搭建一个TCP的业务Server， 在Laravel资源完全初始化的情况下， 使用Swoole常驻内存并对外提供服务， 这样每个请求就不必再去初始化资源， 从而得到极高的性能提升。然后， 需要对前端提供接口， 所以TCP Server前面再放置一个lumen，对外提供HTTP接口服务。为了便于管理， 我给这个方案取了一个名字：Stone，希望它能稳定发展， 成为性能解决方案的一块基石。</p>
+<h1 id="stone的由来:df9104273865eb60abece7dc4c3e68c4">Stone的由来</h1>
+
+<p>Stone最初的目的是为了解决Laravel框架的性能问题， 公司是Laravel框架的重度使用者，在绝大多数场合， Laravel都可以很好的应对，但是对于一些并发量高的应用，比如定时抢购的活动， 存在一些问题。问题的根本原因是：Laravel框架本身性能不高， 由于PHP程序执行机制的特殊性，框架的性能会极大的限制程序的并发能力，这一点相信很多选择或者没选择Laravel的人都有体会。去年年底， 在解决一个性能问题的时候， 尝试性的使用Laravel+Swoole的组合搭建一个TCP的业务Server， 在Laravel资源完全初始化的情况下， 使用Swoole常驻内存并对外提供服务， 这样每个请求就不必再去初始化资源， 从而得到极高的性能提升。然后， 需要对前端提供接口， 所以TCP Server前面再放置一个lumen，对外提供HTTP接口服务。为了便于管理， 我给这个方案取了一个名字：Stone，希望它能稳定发展， 成为性能解决方案的一块基石。</p>
 
 <p>到目前为止，Stone作为接口的方式已经在线上稳定运行超过3个月，有一些很重要的接口也在使用。这里面， 需要重点赞一下<a href="http://www.swoole.com/">Swoole</a>，因为是有了swoole的高性能和稳定， 才有后面的这些事情。</p>
 
-<p>#早期Stone的一些缺陷
-早期Stone的方案缺陷主要体现在两方面：</p>
+<h1 id="早期stone的一些缺陷:df9104273865eb60abece7dc4c3e68c4">早期Stone的一些缺陷</h1>
+
+<p>早期Stone的方案缺陷主要体现在两方面：</p>
 
 <ol>
 <li><p>程序架构变得复杂，加大测试难度，同时并发性能受限于lumen。</p>
@@ -125,7 +127,7 @@ Stone最初的目的是为了解决Laravel框架的性能问题， 公司是Lara
     
 
     <div class="share">
-        <a class="icon-twitter" href="http://twitter.com/share?text=stone%20alpha%e7%89%88%e5%8f%91%e5%b8%83&url=http%3a%2f%2fchefxu.github.io%2fpost%2fstone-alpha%2f"
+        <a class="icon-twitter" href="http://twitter.com/share?text=Stone%20alpha%e7%89%88%e5%8f%91%e5%b8%83&url=http%3a%2f%2fchefxu.github.io%2fpost%2fstone-alpha%2f"
             onclick="window.open(this.href, 'twitter-share', 'width=550,height=235');return false;">
             <i class="fa fa-twitter"></i>
             <span class="hidden">Twitter</span>
