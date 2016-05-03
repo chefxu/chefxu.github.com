@@ -103,7 +103,7 @@
 <li>提高了Stone的适用性， 提供Stone-Web和Stone-Server两种运行方案。前者针对页面后者针对API服务。</li>
 <li>加强了Stone的兼容性，提供Laravel4.x和Laravel5.x的支持， 支持composer安装</li>
 <li>避免修改Laravel代码，代价是引入了对runkit的依赖， 但是我认为是值得的。 当然， 如果你不方便使用runkit，倾向于修改laravel源码， 也是可以的。</li>
-<li>简化了架构， 去除了lumen的依赖， 实现了FastCGI协议， 直接和nginx交互， 大大提高了性能。</li>
+<li>简化了架构， 去除了lumen的依赖， 实现了FastCGI协议， 直接和nginx交互，大大提高了性能。</li>
 <li>大大简化了使用难度和降级难度， 极小的修改后使用Stone进程替代PHP-FPM就能使用， 降级时替换回来即可。你甚至可以同时使用两种方式， 同一份代码， 只有性能要求高的接口才使用Stone。</li>
 </ol>
 

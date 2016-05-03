@@ -6,8 +6,507 @@
     <description>Recent content in Posts on 代码苦旅</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Mon, 02 May 2016 15:38:50 +0800</lastBuildDate>
+    <lastBuildDate>Mon, 02 May 2016 20:45:21 +0800</lastBuildDate>
     <atom:link href="http://chefxu.github.io/post/index.xml" rel="self" type="application/rss+xml" />
+    
+    <item>
+      <title>stone quick start</title>
+      <link>http://chefxu.github.io/post/stone-quick-start/</link>
+      <pubDate>Mon, 02 May 2016 20:45:21 +0800</pubDate>
+      
+      <guid>http://chefxu.github.io/post/stone-quick-start/</guid>
+      <description>
+
+&lt;h1 id=&#34;stone优化原理:8c6eb53b86a2816f2aa3c6d1e82ca46c&#34;&gt;Stone优化原理&lt;/h1&gt;
+
+&lt;p&gt;快速入口：&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;Stone项目地址：&lt;a href=&#34;https://github.com/chefxu/stone&#34;&gt;https://github.com/chefxu/stone&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://github.com/chefxu/stone-laravel-example&#34;&gt;一个laravel5的使用stone的例子&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;如果你正在考虑框架性能优化的问题， 你对PHP应该已经有足够的了解了。 如你所知， PHP每次的每次请求结束， 都会释放掉执行中建立的所有资源。这样有一个很大的好处：PHP程序员基本不用费力去考虑资源释放的问题，诸如内存，IO句柄，数据库连接等，请求结束时PHP将全部释放。PHP程序员几乎不用关心内存释放的问题，也很难写出内存泄露的程序。这让PHP变得更加简单容易上手， 直抒心意。但是也带来了一个坏处：PHP很难在请求间复用资源， 类似PHP框架这种耗时的工作， 每次请求都需要反复做——即使每次都在做同样的事情。也正因为如此，在PHP发展过程中，关于是否使用框架的争论也从未停止过。&lt;/p&gt;
+
+&lt;p&gt;Stone主要优化的就是这个问题。 在框架资源初始化结束后再开启一个FastCGI服务，这样， 新的请求过来是直接从资源初始化结束后的状态开始，避免每次请求去做资源初始化的事情。所以， 本质上， Stone运行时是常驻内存的，它和PHP-FPM一样，是一个FastCGI的实现，不同的是， FPM每次执行请求都需要重新初始化框架， Stone直接使用初始化的结果。&lt;/p&gt;
+
+&lt;p&gt;同样，事情总是有好有坏。坏处是：PHP编程变得更难了， 你需要考虑内存的释放，需要关心PHP如何使用内存。甚至， 你需要了解使用的框架，以免『不小心』写出让人『惊喜』的效果。同时， PHP的调试变得更难， 因为每次修改程序后需要重启进程才能看到效果。事实上开发Stone时针对这方面做了不少工作。好处是：程序的性能得到极大的提高。 当然， 客观上的一些利好因素是： PHP的内存回收已经相当稳定和高效， Swoole稳定性已经在相当多的项目中得到验证，Laravel代码质量相当高。&lt;/p&gt;
+
+&lt;p&gt;在设计Stone时的另外一个目的是简单。 希望使用者能5分钟完成部署， 并且不需要对原有功能进行改造，可以安全地停止使用。&lt;/p&gt;
+
+&lt;h2 id=&#34;1-关于-stone-web-和-stone-server:8c6eb53b86a2816f2aa3c6d1e82ca46c&#34;&gt;1. 关于 Stone-Web 和 Stone-Server&lt;/h2&gt;
+
+&lt;p&gt;Stone支持两种运行方式， Web方式用来优化Web页面的执行， 执行流程和现在的Laravel页面完全一致。 Server方式用来解决对性能要求很高的场合， 执行流程与artisan command一致， 绕过了laravel MVC的流程， 需要自己去实现请求处理的Handler。&lt;/p&gt;
+
+&lt;blockquote&gt;
+&lt;p&gt;比如一个抢购活动， 想在用户实际下单前拦截请求避免对订单系统造成冲击， 可以使用Stone-Server实现一个抢购功能， 获得抢购资格的用户才进入下单流程。&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;h2 id=&#34;2-性能对比:8c6eb53b86a2816f2aa3c6d1e82ca46c&#34;&gt;2. 性能对比&lt;/h2&gt;
+
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;应用类型&lt;/th&gt;
+&lt;th&gt;原始Laravel&lt;/th&gt;
+&lt;th&gt;Stone-Web&lt;/th&gt;
+&lt;th&gt;Stone-Server&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;laravel5 默认页面&lt;/td&gt;
+&lt;td&gt;150&lt;/td&gt;
+&lt;td&gt;3000&lt;/td&gt;
+&lt;td&gt;&amp;ndash;&lt;/td&gt;
+&lt;/tr&gt;
+
+&lt;tr&gt;
+&lt;td&gt;laravel5 简单接口&lt;/td&gt;
+&lt;td&gt;150&lt;/td&gt;
+&lt;td&gt;3000&lt;/td&gt;
+&lt;td&gt;8500&lt;/td&gt;
+&lt;/tr&gt;
+
+&lt;tr&gt;
+&lt;td&gt;laravel4 实际项目简单页面&lt;/td&gt;
+&lt;td&gt;70&lt;/td&gt;
+&lt;td&gt;1000&lt;/td&gt;
+&lt;td&gt;&amp;ndash;&lt;/td&gt;
+&lt;/tr&gt;
+
+&lt;tr&gt;
+&lt;td&gt;laravel4 简单接口&lt;/td&gt;
+&lt;td&gt;120&lt;/td&gt;
+&lt;td&gt;&amp;ndash;&lt;/td&gt;
+&lt;td&gt;8200&lt;/td&gt;
+&lt;/tr&gt;
+
+&lt;tr&gt;
+&lt;td&gt;laravel4 实际项目首页&lt;/td&gt;
+&lt;td&gt;35&lt;/td&gt;
+&lt;td&gt;380&lt;/td&gt;
+&lt;td&gt;&amp;ndash;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+
+&lt;p&gt;测试环境如下：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;PHP 5.6.17-0+deb8u1 (cli) (built: Jan 13 2016 09:10:12)
+Copyright (c) 1997-2015 The PHP Group
+Zend Engine v2.6.0, Copyright (c) 1998-2015 Zend Technologies
+    with Zend OPcache v7.0.6-dev, Copyright (c) 1999-2015, by Zend Technologies
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;pre&gt;&lt;code&gt;Linux office 3.16.0-4-amd64 #1 SMP Debian 3.16.7-ckt20-1+deb8u3 (2016-01-17) x86_64 GNU/Linux
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;pre&gt;&lt;code&gt;16核 Intel(R) Xeon(R) CPU E5-2640 v2 @ 2.00GHz
+16G 内存
+Laravel 4.2
+Laravel 5.2
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h1 id=&#34;stone快速指南:8c6eb53b86a2816f2aa3c6d1e82ca46c&#34;&gt;Stone快速指南&lt;/h1&gt;
+
+&lt;p&gt;注意：&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;&lt;em&gt;如果你不能在5分钟内完成部署， 你应该停止使用Stone了&lt;/em&gt; :)&lt;/li&gt;
+&lt;li&gt;&lt;em&gt;目前Stone处在alpha阶段，本文档随时可能会失效&lt;/em&gt;&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;特别提示：&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;新项目中尝试Stone， 建议从Stone-Server开始， 这是一个针对API的优化方案。&lt;/li&gt;
+&lt;li&gt;已有项目中尝试Stone，建议从Stone-Web开始， 这是一个针对Web的优化方案。&lt;/li&gt;
+&lt;li&gt;请阅读一下风险提示&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;h2 id=&#34;stone安装指引:8c6eb53b86a2816f2aa3c6d1e82ca46c&#34;&gt;Stone安装指引&lt;/h2&gt;
+
+&lt;h3 id=&#34;安装stone:8c6eb53b86a2816f2aa3c6d1e82ca46c&#34;&gt;安装Stone&lt;/h3&gt;
+
+&lt;ol&gt;
+&lt;li&gt;&lt;p&gt;安装依赖包&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;sudo pcel install swoole
+sudo pcel install runkit
+&lt;/code&gt;&lt;/pre&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;composer安装Stone&lt;/p&gt;
+
+&lt;p&gt;laravel 5:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-php&#34;&gt;composer require qufenqi/stone:dev-master
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;laravel 4:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-php&#34;&gt;composer require qufenqi/stone:dev-laravel-4.x
+&lt;/code&gt;&lt;/pre&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;修改config/app.php, 加载Stone的Service Provider,&lt;/p&gt;
+
+&lt;blockquote&gt;
+&lt;p&gt;注意Laravel4的配置文件路径和写法有细微差别。&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-php&#34;&gt;&#39;providers&#39; =&amp;gt; [
+    // laravel定义的provider
+    Illuminate\Auth\AuthServiceProvider::class,
+    Illuminate\Broadcasting\BroadcastServiceProvider::class,
+    ....
+    .... // 中间省略的其他provider
+    ....
+    Qufenqi\Stone\StoneServiceProvider::class,
+
+
+    // 应用层定义的provider
+    App\Providers\AppServiceProvider::class,
+    App\Providers\AuthServiceProvider::class,
+    App\Providers\EventServiceProvider::class,
+    App\Providers\RouteServiceProvider::class,
+
+
+]，
+&lt;/code&gt;&lt;/pre&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;配置Stone: 新建 config/stone.php&lt;/p&gt;
+
+&lt;blockquote&gt;
+&lt;p&gt;注意Laravel4的配置文件路径有细微差别。&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-php&#34;&gt;return [
+
+
+    // server模式配置
+    &#39;server&#39; =&amp;gt; [
+        &#39;handler&#39; =&amp;gt; &#39;App\Servers\Handler&#39;, // request handler
+        &#39;user&#39; =&amp;gt; &#39;apple&#39;, // run user
+        &#39;group&#39; =&amp;gt; &#39;apple&#39;, // run group
+        &#39;domain&#39; =&amp;gt; &#39;/var/run/stone-server-fpm.sock&#39;,
+        &#39;pid&#39; =&amp;gt; &#39;/run/stone-fpm.pid&#39;,
+        &#39;process_name&#39; =&amp;gt; &#39;stone-server-fpm&#39;,
+        &#39;worker_num&#39; =&amp;gt; 30,
+    ],
+
+
+    // web模式配置
+    &#39;web&#39; =&amp;gt; [
+        &#39;user&#39; =&amp;gt; &#39;apple&#39;, // run user
+        &#39;group&#39; =&amp;gt; &#39;apple&#39;, // run group
+        &#39;domain&#39; =&amp;gt; &#39;/var/run/stone-web-fpm.sock&#39;, // unix domain socket
+        &#39;pid&#39; =&amp;gt; &#39;/run/stone-web.pid&#39;,
+        &#39;process_name&#39; =&amp;gt; &#39;stone-web-server&#39;,
+        &#39;worker_num&#39; =&amp;gt; 30,
+
+
+        // 需要建立快照的绑定
+        &#39;snap_bindings&#39; =&amp;gt; [
+            &#39;view&#39;,
+            &#39;cookie&#39;,
+            &#39;session&#39;,
+            &#39;session.store&#39;,
+            //&#39;config&#39;, // debugbar 需要重置config
+        ],
+
+
+    ],
+];
+&lt;/code&gt;&lt;/pre&gt;&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;h3 id=&#34;在laravel-5-项目上使用stone-web:8c6eb53b86a2816f2aa3c6d1e82ca46c&#34;&gt;在Laravel 5 项目上使用Stone-Web:&lt;/h3&gt;
+
+&lt;ol&gt;
+&lt;li&gt;&lt;p&gt;修改app/Http/Kernel.php, 让Stone的Kernel接管请求的处理。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-php&#34;&gt;// 根据当前的运行sapi决定使用哪个kernel来处理请求， 这样FPM和Stone可以完全使用一套程序
+if (php_sapi_name() == &#39;cli&#39;) {
+    class BaseKernel extends StoneKernel {}
+} else {
+    class BaseKernel extends HttpKernel {}
+}
+
+
+class Kernel extends BaseKernel
+
+
+&lt;/code&gt;&lt;/pre&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;运行Stone-Web, Web模式处在开发阶段， 所以默认不会以deamon模式启动， 便于调试&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;sudo php ./public/index.php
+&lt;/code&gt;&lt;/pre&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;修改nginx配置&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-nginx&#34;&gt;location ~ \.php$ {
+    fastcgi_split_path_info ^(.+\.php)(/.+)$;
+    fastcgi_index index.php;
+    # fastcgi_pass unix:/var/run/php5-fpm.sock; # PHP-FPM
+    fastcgi_pass unix:/var/run/stone-web-fpm.sock; # Stone
+    include fastcgi_params;
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;sudo nginx -s reload
+&lt;/code&gt;&lt;/pre&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;完成&lt;/p&gt;&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;h3 id=&#34;在laravel-4-项目上使用stone-web:8c6eb53b86a2816f2aa3c6d1e82ca46c&#34;&gt;在Laravel 4 项目上使用Stone-Web&lt;/h3&gt;
+
+&lt;ol&gt;
+&lt;li&gt;&lt;p&gt;修改public/index.php与bootstrap/start.php, 让Stone的Kernel接管请求的处理。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-php&#34;&gt;// 修改public/index.php
+if (PHP_SAPI == &#39;cli&#39;) {
+    define(&#39;STONE_WEB_MODE&#39;, true);
+    $_SERVER[&#39;RUNENV&#39;] = &#39;local&#39;;
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-php&#34;&gt;// 修改bootstrap/start.php
+if (defined(&#39;STONE_WEB_MODE&#39;)) {
+    $app = new Qufenqi\Stone\Foundation\Application;
+} else {
+    $app = new Illuminate\Foundation\Application;
+}
+&lt;/code&gt;&lt;/pre&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;运行Stone-Web, Web模式处在开发阶段， 所以默认不会以deamon模式启动， 便于调试&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;sudo php ./public/index.php
+&lt;/code&gt;&lt;/pre&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;修改nginx配置&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-nginx&#34;&gt;location ~ \.php$ {
+    fastcgi_split_path_info ^(.+\.php)(/.+)$;
+    fastcgi_index index.php;
+    # fastcgi_pass unix:/var/run/php5-fpm.sock; # PHP-FPM
+    fastcgi_pass unix:/var/run/stone-web-fpm.sock; # Stone
+    include fastcgi_params;
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;sudo nginx -s reload
+&lt;/code&gt;&lt;/pre&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;完成&lt;/p&gt;&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;h3 id=&#34;在laravel-5-中使用stone-server:8c6eb53b86a2816f2aa3c6d1e82ca46c&#34;&gt;在Laravel 5 中使用Stone-Server&lt;/h3&gt;
+
+&lt;ol&gt;
+&lt;li&gt;&lt;p&gt;修改app\Console\Kernel.php&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-php&#34;&gt;protected $commands = [
+    // Commands\Inspire::class,
+    \Qufenqi\Stone\Console\Commands\StoneServer::class, // 添加这一行
+];
+&lt;/code&gt;&lt;/pre&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;定义请求处理类， 我定义在app\Servers\Handler.php&lt;/p&gt;
+
+&lt;blockquote&gt;
+&lt;p&gt;注意 这个其实就是 stone.php 配置里的 server.handler&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-php&#34;&gt;&amp;lt;?php namespace App\Servers;
+
+
+use Qufenqi\Stone\Contracts\RequestHandler;
+use Response;
+
+
+class Handler implements RequestHandler
+{
+    public function process()
+    {
+        return Response::make(&#39;hello, stone server!&#39;);
+    }
+
+
+    public function onWorkerStart()
+    {
+
+
+    }
+}
+&lt;/code&gt;&lt;/pre&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;运行Stone-Server&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;sudo php ./artisan stone:server
+&lt;/code&gt;&lt;/pre&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;修改nginx配置&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-nginx&#34;&gt;location /server/ {
+    fastcgi_split_path_info ^(.+\.php)(/.+)$;
+    fastcgi_index index.php;
+    fastcgi_pass unix:/var/run/stone-server-fpm.sock; # Stone
+    include fastcgi_params;
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;sudo nginx -s reload
+&lt;/code&gt;&lt;/pre&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;完成&lt;/p&gt;&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;h3 id=&#34;在laravel-4-中使用stone-server:8c6eb53b86a2816f2aa3c6d1e82ca46c&#34;&gt;在Laravel 4 中使用Stone-Server&lt;/h3&gt;
+
+&lt;ol&gt;
+&lt;li&gt;&lt;p&gt;修改app\start\artisan.php&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-php&#34;&gt;Artisan::add(new Qufenqi\Stone\Console\Commands\StoneServer);
+&lt;/code&gt;&lt;/pre&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;定义请求处理类， 我定义在app\Servers\Handler.php&lt;/p&gt;
+
+&lt;blockquote&gt;
+&lt;p&gt;注意 这个其实就是 stone.php 配置里的 server.handler&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-php&#34;&gt;&amp;lt;?php namespace App\Servers;
+
+
+use Qufenqi\Stone\Contracts\RequestHandler;
+use Response;
+
+
+class Handler implements RequestHandler
+{
+    public function process()
+    {
+        return Response::make(&#39;hello, stone server!&#39;);
+    }
+
+
+    public function onWorkerStart()
+    {
+
+
+    }
+}
+&lt;/code&gt;&lt;/pre&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;运行Stone-Server&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;sudo php ./artisan stone:server
+&lt;/code&gt;&lt;/pre&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;修改nginx配置&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-nginx&#34;&gt;location /server/ {
+    fastcgi_split_path_info ^(.+\.php)(/.+)$;
+    fastcgi_index index.php;
+    fastcgi_pass unix:/var/run/stone-server-fpm.sock; # Stone
+    include fastcgi_params;
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;sudo nginx -s reload
+&lt;/code&gt;&lt;/pre&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;完成&lt;/p&gt;&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;h1 id=&#34;stone进阶指南:8c6eb53b86a2816f2aa3c6d1e82ca46c&#34;&gt;Stone进阶指南&lt;/h1&gt;
+
+&lt;h2 id=&#34;1-stone的使用风险:8c6eb53b86a2816f2aa3c6d1e82ca46c&#34;&gt;1. Stone的使用风险&lt;/h2&gt;
+
+&lt;p&gt;使用Stone的一个很重要的事情是， 需要始终对内存使用抱有敬畏之心。 在未充分了解风险前， 请不要在实际项目中轻易尝试，否则可能产生非常严重的后果！！&lt;/p&gt;
+
+&lt;p&gt;比如：Laravle的Cookie实现了单例模式， 是为了让开发者在任何地方可以往Response里追加cookie， 使用：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-php&#34;&gt;Cookie::queue(&#39;key&#39;, &#39;value&#39;, 60);
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;这在PHP-FPM下不会有任何问题。 但Stone常驻内存后， 请求的资源没有在请求结束后释放， &lt;strong&gt;因此上一个请求在Cookie在下一个请求中仍然存在&lt;/strong&gt;。 想像下， 如果这是一个关于Session Id的cookie， 会产生多么严重的后果。
+同样，&lt;strong&gt;Laravel的Auth对象， 也可能出现类似的问题&lt;/strong&gt;。&lt;/p&gt;
+
+&lt;p&gt;内存泄露什么的可能只是影响稳定性， 但是这个处理不当会带来难以估计的损失， 这是使用Stone或者类似常驻内存方案的最大风险。&lt;/p&gt;
+
+&lt;h2 id=&#34;2-boot-service-provider-与-request-service-provider:8c6eb53b86a2816f2aa3c6d1e82ca46c&#34;&gt;2. Boot Service Provider 与 Request Service Provider&lt;/h2&gt;
+
+&lt;p&gt;使用Stone（或者使用类似常驻内存解决方案）最重要的一点， 是需要区分哪些资源可以请求间共享， 哪些资源不能共享。这在
+Stone中被区别为: boot service provider 和 request service provider。&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;boot service provider在进程初始化时被执行， 请求间共享。&lt;/li&gt;
+&lt;li&gt;request service provider在请求时执行， 请求间不共享, 每次请求重新执行。&lt;/li&gt;
+&lt;li&gt;laravel原来定义的service provider默认都是boot service Provider， 除非你在stone配置里重新定义。&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;比如， Laravel的路由规则的解析， 是不需要每次请求都去执行的，而在一个时间较长的项目中， 路由规则可能有几千行，解析这些规则需要耗费不少时间， 所以设置成boot service provider是比较合适的。 而有一些service provider是需要每次都执行的，比如debugbar， 这些设置成request service provider比较合适。&lt;/p&gt;
+
+&lt;h2 id=&#34;3-实例快照与runkit:8c6eb53b86a2816f2aa3c6d1e82ca46c&#34;&gt;3. 实例快照与runkit&lt;/h2&gt;
+
+&lt;p&gt;还有一种情况，不需要每次执行具体的代码， 但是需要做一些重置操作。 比如Cookie， Laravel将cookie放到Response的数组中， 在结束响应时发送到浏览器端，请求结束后并没有清空而带到了下一个请求。 Stone的一个解决办法是将Cookie在创建时建立一个快照， 保存当前的状态， 等请求结束时再通过快照恢复， 避免Cookie被带到下一个请求的问题。&lt;/p&gt;
+
+&lt;blockquote&gt;
+&lt;p&gt;这个在config/stone.php里可以定义。&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;runkit在这个过程中的意义是给予PHP运行时注入实例的能力。 在app初始化时通过runkit注入指定实例， 让他们具有快照恢复的功能， 再建立快照， 请求结束后再通过快照恢复。&lt;/p&gt;
+
+&lt;p&gt;快照和request service provider都能解决Cookie在请求间共享的问题， 快照的方式避免了再次执行service provider里register和boot的工作， 效率会更好一些。 如果你只是需要每次请求得到一个新的实例， 而不是需要在请求中再次执行一段程序， 使用快照的方式会更好一些。&lt;/p&gt;
+
+&lt;h2 id=&#34;4-理解请求间共享资源:8c6eb53b86a2816f2aa3c6d1e82ca46c&#34;&gt;4. 理解请求间共享资源&lt;/h2&gt;
+
+&lt;p&gt;这是一把双刃剑， 利用好了性能能得到极大提升， 否则就是bug的深渊。&lt;/p&gt;
+
+&lt;p&gt;比如， 我们常需要实现权限系统， 如果能在初始化的时候将权限系统加载， 并在请求间共享， 这样每次请求就不需要再去从数据库里加载解析权限规则， 这样效率能得到提高。 利用好了这一点， 有助于你写出更高效的程序。&lt;/p&gt;
+
+&lt;p&gt;而如果你没理解好这一点， 比如你使用了一个单例模式， 这个实例被维持在类的静态变量里， 因此不会在请求结束后自然销毁。 而这个实例在请求间共享又会出现问题，类似cookie的问题，这样就会造成bug。&lt;/p&gt;
+
+&lt;h2 id=&#34;5-沙盒模式:8c6eb53b86a2816f2aa3c6d1e82ca46c&#34;&gt;5. 沙盒模式&lt;/h2&gt;
+
+&lt;p&gt;我希望在未来能支持沙盒模式， 在初始化后建立一个沙盒， 把请求防止到沙盒里执行， 这样就可以更安全方便的实现。&lt;/p&gt;
+
+&lt;h1 id=&#34;设计stone的一些想法:8c6eb53b86a2816f2aa3c6d1e82ca46c&#34;&gt;设计Stone的一些想法&lt;/h1&gt;
+
+&lt;h2 id=&#34;1-保持与php-fpm的兼容:8c6eb53b86a2816f2aa3c6d1e82ca46c&#34;&gt;1. 保持与PHP-FPM的兼容&lt;/h2&gt;
+
+&lt;p&gt;这样做能带来几个好处：&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;调试方便， 在开发中， 程序员完全可以使用php-fpm来开发， 这样可以避免开发时反复重启进程的问题。 当然， 测试时还是应该使用Stone，免得一些问题需要在线上时才发现。&lt;/li&gt;
+&lt;li&gt;使用方便， 5分钟内快速使用这个目标不会改变&lt;/li&gt;
+&lt;li&gt;停用方便， 出现一些暂时无法解决的问题的时候， 可以通过修改nginx配置快速切换会PHP-FPM&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;h2 id=&#34;2-什么场合下适合使用stone:8c6eb53b86a2816f2aa3c6d1e82ca46c&#34;&gt;2. 什么场合下适合使用Stone&lt;/h2&gt;
+
+&lt;p&gt;Stone的目标定位于解决已有PHP程序的性能问题。 随着开源程序的越来越完善， 现在解决高并发问题的技术方案越来越多， 有些已经非常成熟。 Stone的优势在于在解决性能问题的同时可以100%重用现在的业务逻辑。&lt;/p&gt;
+
+&lt;p&gt;比如， 现有系统中需要加入一个抢购的功能， 我们可能会在抢购之前根据业务规则进行流量拦截， 可能需要使用到redis， 现有的用户系统，现有的业务规则。 使用Stone-Server， 你可以直接使用。 但是如果你使用其他语言的解决方案， 你可能需要把这些规则使用另外的语言再实现一遍。 这加大了开发和维护的成本。&lt;/p&gt;
+
+&lt;h2 id=&#34;3-继续降低使用stone的难度:8c6eb53b86a2816f2aa3c6d1e82ca46c&#34;&gt;3. 继续降低使用Stone的难度&lt;/h2&gt;
+
+&lt;p&gt;使用Stone很可能会踩坑。 一方面可能是开发者对于运行机制的理解不充分； 一方面可能是现有PHP程序没有考虑请求结束后的资源销毁的问题； 也可能是Stone本身程序存在一些bug。 Stone会持续完善， 并尽量对应用程序提供一些保护机制， 降低程序使用的难度。&lt;/p&gt;
+
+&lt;h1 id=&#34;在其他框架下使用stone:8c6eb53b86a2816f2aa3c6d1e82ca46c&#34;&gt;在其他框架下使用Stone&lt;/h1&gt;
+
+&lt;p&gt;由于精力有限， 暂时不考虑其他框架， 但是应该是可以较快移至到其他框架的。 如果你有兴趣， 不妨fork代码自己实现一下。&lt;/p&gt;
+
+&lt;h1 id=&#34;问题反馈:8c6eb53b86a2816f2aa3c6d1e82ca46c&#34;&gt;问题反馈&lt;/h1&gt;
+
+&lt;p&gt;希望感兴趣的朋友能积极给我反馈， 甚至参与到Stone的开发中来， 我们一起完善。
+我的邮箱是: rssidea(at)qq.com&lt;/p&gt;
+</description>
+    </item>
     
     <item>
       <title>Stone alpha版发布</title>
@@ -54,7 +553,7 @@
 &lt;li&gt;提高了Stone的适用性， 提供Stone-Web和Stone-Server两种运行方案。前者针对页面后者针对API服务。&lt;/li&gt;
 &lt;li&gt;加强了Stone的兼容性，提供Laravel4.x和Laravel5.x的支持， 支持composer安装&lt;/li&gt;
 &lt;li&gt;避免修改Laravel代码，代价是引入了对runkit的依赖， 但是我认为是值得的。 当然， 如果你不方便使用runkit，倾向于修改laravel源码， 也是可以的。&lt;/li&gt;
-&lt;li&gt;简化了架构， 去除了lumen的依赖， 实现了FastCGI协议， 直接和nginx交互， 大大提高了性能。&lt;/li&gt;
+&lt;li&gt;简化了架构， 去除了lumen的依赖， 实现了FastCGI协议， 直接和nginx交互，大大提高了性能。&lt;/li&gt;
 &lt;li&gt;大大简化了使用难度和降级难度， 极小的修改后使用Stone进程替代PHP-FPM就能使用， 降级时替换回来即可。你甚至可以同时使用两种方式， 同一份代码， 只有性能要求高的接口才使用Stone。&lt;/li&gt;
 &lt;/ol&gt;
 

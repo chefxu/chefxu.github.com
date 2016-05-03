@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+        <title>stone quick start &middot; </title>
+        <meta name="description" content="">
+        <meta name="HandheldFriendly" content="True">
+        <meta name="MobileOptimized" content="320">
+        <meta name="generator" content="Hugo 0.15" />
+        <meta name="robots" content="index,follow">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="stylesheet" href="http://chefxu.github.io/css/normalize.css">
+        <link rel="stylesheet" href="http://chefxu.github.io/css/highlight.css">
+        <link rel="stylesheet" href="http://chefxu.github.io/css/style.css">
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,400,600,700,300&subset=latin,cyrillic-ext,latin-ext,cyrillic">
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
+    </head>
+    <body>
+        
+
+        <div id="wrapper">
+            <header class="site-header">
+                <div class="container">
+                    <div class="site-title-wrapper">
+                        
+                            <h1 class="site-title">
+                                <a title="代码苦旅" href="http://chefxu.github.io/">代码苦旅</a>
+                            </h1>
+                        
+                        <a class="button-square" href="http://chefxu.github.io/index.xml"><i class="fa fa-rss"></i></a>
+                        
+                        
+                        
+                        
+                        
+                    </div>
+
+                    <ul class="site-nav">
+                        
+                    </ul>
+                </div>
+            </header>
+
+            <div id="container">
+
+
+<div class="container">
+    <article class="post-container" itemscope="" itemtype="http://schema.org/BlogPosting">
+        <header class="post-header">
+    <h1 class="post-title" itemprop="name headline">stone quick start</h1>
+    
+    <p class="post-date">
+        <span>Published <time datetime="2016-05-02" itemprop="datePublished">Mon, May 2, 2016</time></span>
+        <span>by</span>
+        <span itemscope="" itemprop="author" itemtype="http://schema.org/Person">
+            <span itemprop="name">
+                <a href="" itemprop="url" rel="author"></a>
+            </span>
+        </span>
+    </p>
+</header>
+
+        <div class="post-content clearfix" itemprop="articleBody">
+    
+
+    
+
+<h1 id="stone优化原理:8c6eb53b86a2816f2aa3c6d1e82ca46c">Stone优化原理</h1>
+
+<p>快速入口：</p>
+
+<ul>
+<li>Stone项目地址：<a href="https://github.com/chefxu/stone">https://github.com/chefxu/stone</a></li>
+<li><a href="https://github.com/chefxu/stone-laravel-example">一个laravel5的使用stone的例子</a></li>
+</ul>
+
+<p>如果你正在考虑框架性能优化的问题， 你对PHP应该已经有足够的了解了。 如你所知， PHP每次的每次请求结束， 都会释放掉执行中建立的所有资源。这样有一个很大的好处：PHP程序员基本不用费力去考虑资源释放的问题，诸如内存，IO句柄，数据库连接等，请求结束时PHP将全部释放。PHP程序员几乎不用关心内存释放的问题，也很难写出内存泄露的程序。这让PHP变得更加简单容易上手， 直抒心意。但是也带来了一个坏处：PHP很难在请求间复用资源， 类似PHP框架这种耗时的工作， 每次请求都需要反复做——即使每次都在做同样的事情。也正因为如此，在PHP发展过程中，关于是否使用框架的争论也从未停止过。</p>
+
+<p>Stone主要优化的就是这个问题。 在框架资源初始化结束后再开启一个FastCGI服务，这样， 新的请求过来是直接从资源初始化结束后的状态开始，避免每次请求去做资源初始化的事情。所以， 本质上， Stone运行时是常驻内存的，它和PHP-FPM一样，是一个FastCGI的实现，不同的是， FPM每次执行请求都需要重新初始化框架， Stone直接使用初始化的结果。</p>
+
+<p>同样，事情总是有好有坏。坏处是：PHP编程变得更难了， 你需要考虑内存的释放，需要关心PHP如何使用内存。甚至， 你需要了解使用的框架，以免『不小心』写出让人『惊喜』的效果。同时， PHP的调试变得更难， 因为每次修改程序后需要重启进程才能看到效果。事实上开发Stone时针对这方面做了不少工作。好处是：程序的性能得到极大的提高。 当然， 客观上的一些利好因素是： PHP的内存回收已经相当稳定和高效， Swoole稳定性已经在相当多的项目中得到验证，Laravel代码质量相当高。</p>
+
+<p>在设计Stone时的另外一个目的是简单。 希望使用者能5分钟完成部署， 并且不需要对原有功能进行改造，可以安全地停止使用。</p>
+
+<h2 id="1-关于-stone-web-和-stone-server:8c6eb53b86a2816f2aa3c6d1e82ca46c">1. 关于 Stone-Web 和 Stone-Server</h2>
+
+<p>Stone支持两种运行方式， Web方式用来优化Web页面的执行， 执行流程和现在的Laravel页面完全一致。 Server方式用来解决对性能要求很高的场合， 执行流程与artisan command一致， 绕过了laravel MVC的流程， 需要自己去实现请求处理的Handler。</p>
+
+<blockquote>
+<p>比如一个抢购活动， 想在用户实际下单前拦截请求避免对订单系统造成冲击， 可以使用Stone-Server实现一个抢购功能， 获得抢购资格的用户才进入下单流程。</p>
+</blockquote>
+
+<h2 id="2-性能对比:8c6eb53b86a2816f2aa3c6d1e82ca46c">2. 性能对比</h2>
+
+<table>
+<thead>
+<tr>
+<th>应用类型</th>
+<th>原始Laravel</th>
+<th>Stone-Web</th>
+<th>Stone-Server</th>
+</tr>
+</thead>
+
+<tbody>
+<tr>
+<td>laravel5 默认页面</td>
+<td>150</td>
+<td>3000</td>
+<td>&ndash;</td>
+</tr>
+
+<tr>
+<td>laravel5 简单接口</td>
+<td>150</td>
+<td>3000</td>
+<td>8500</td>
+</tr>
+
+<tr>
+<td>laravel4 实际项目简单页面</td>
+<td>70</td>
+<td>1000</td>
+<td>&ndash;</td>
+</tr>
+
+<tr>
+<td>laravel4 简单接口</td>
+<td>120</td>
+<td>&ndash;</td>
+<td>8200</td>
+</tr>
+
+<tr>
+<td>laravel4 实际项目首页</td>
+<td>35</td>
+<td>380</td>
+<td>&ndash;</td>
+</tr>
+</tbody>
+</table>
+
+<p>测试环境如下：</p>
+
+<pre><code>PHP 5.6.17-0+deb8u1 (cli) (built: Jan 13 2016 09:10:12)
+Copyright (c) 1997-2015 The PHP Group
+Zend Engine v2.6.0, Copyright (c) 1998-2015 Zend Technologies
+    with Zend OPcache v7.0.6-dev, Copyright (c) 1999-2015, by Zend Technologies
+</code></pre>
+
+<pre><code>Linux office 3.16.0-4-amd64 #1 SMP Debian 3.16.7-ckt20-1+deb8u3 (2016-01-17) x86_64 GNU/Linux
+</code></pre>
+
+<pre><code>16核 Intel(R) Xeon(R) CPU E5-2640 v2 @ 2.00GHz
+16G 内存
+Laravel 4.2
+Laravel 5.2
+</code></pre>
+
+<h1 id="stone快速指南:8c6eb53b86a2816f2aa3c6d1e82ca46c">Stone快速指南</h1>
+
+<p>注意：</p>
+
+<ol>
+<li><em>如果你不能在5分钟内完成部署， 你应该停止使用Stone了</em> :)</li>
+<li><em>目前Stone处在alpha阶段，本文档随时可能会失效</em></li>
+</ol>
+
+<p>特别提示：</p>
+
+<ol>
+<li>新项目中尝试Stone， 建议从Stone-Server开始， 这是一个针对API的优化方案。</li>
+<li>已有项目中尝试Stone，建议从Stone-Web开始， 这是一个针对Web的优化方案。</li>
+<li>请阅读一下风险提示</li>
+</ol>
+
+<h2 id="stone安装指引:8c6eb53b86a2816f2aa3c6d1e82ca46c">Stone安装指引</h2>
+
+<h3 id="安装stone:8c6eb53b86a2816f2aa3c6d1e82ca46c">安装Stone</h3>
+
+<ol>
+<li><p>安装依赖包</p>
+
+<pre><code class="language-bash">sudo pcel install swoole
+sudo pcel install runkit
+</code></pre></li>
+
+<li><p>composer安装Stone</p>
+
+<p>laravel 5:</p>
+
+<pre><code class="language-php">composer require qufenqi/stone:dev-master
+</code></pre>
+
+<p>laravel 4:</p>
+
+<pre><code class="language-php">composer require qufenqi/stone:dev-laravel-4.x
+</code></pre></li>
+
+<li><p>修改config/app.php, 加载Stone的Service Provider,</p>
+
+<blockquote>
+<p>注意Laravel4的配置文件路径和写法有细微差别。</p>
+</blockquote>
+
+<pre><code class="language-php">'providers' =&gt; [
+    // laravel定义的provider
+    Illuminate\Auth\AuthServiceProvider::class,
+    Illuminate\Broadcasting\BroadcastServiceProvider::class,
+    ....
+    .... // 中间省略的其他provider
+    ....
+    Qufenqi\Stone\StoneServiceProvider::class,
+
+
+    // 应用层定义的provider
+    App\Providers\AppServiceProvider::class,
+    App\Providers\AuthServiceProvider::class,
+    App\Providers\EventServiceProvider::class,
+    App\Providers\RouteServiceProvider::class,
+
+
+]，
+</code></pre></li>
+
+<li><p>配置Stone: 新建 config/stone.php</p>
+
+<blockquote>
+<p>注意Laravel4的配置文件路径有细微差别。</p>
+</blockquote>
+
+<pre><code class="language-php">return [
+
+
+    // server模式配置
+    'server' =&gt; [
+        'handler' =&gt; 'App\Servers\Handler', // request handler
+        'user' =&gt; 'apple', // run user
+        'group' =&gt; 'apple', // run group
+        'domain' =&gt; '/var/run/stone-server-fpm.sock',
+        'pid' =&gt; '/run/stone-fpm.pid',
+        'process_name' =&gt; 'stone-server-fpm',
+        'worker_num' =&gt; 30,
+    ],
+
+
+    // web模式配置
+    'web' =&gt; [
+        'user' =&gt; 'apple', // run user
+        'group' =&gt; 'apple', // run group
+        'domain' =&gt; '/var/run/stone-web-fpm.sock', // unix domain socket
+        'pid' =&gt; '/run/stone-web.pid',
+        'process_name' =&gt; 'stone-web-server',
+        'worker_num' =&gt; 30,
+
+
+        // 需要建立快照的绑定
+        'snap_bindings' =&gt; [
+            'view',
+            'cookie',
+            'session',
+            'session.store',
+            //'config', // debugbar 需要重置config
+        ],
+
+
+    ],
+];
+</code></pre></li>
+</ol>
+
+<h3 id="在laravel-5-项目上使用stone-web:8c6eb53b86a2816f2aa3c6d1e82ca46c">在Laravel 5 项目上使用Stone-Web:</h3>
+
+<ol>
+<li><p>修改app/Http/Kernel.php, 让Stone的Kernel接管请求的处理。</p>
+
+<pre><code class="language-php">// 根据当前的运行sapi决定使用哪个kernel来处理请求， 这样FPM和Stone可以完全使用一套程序
+if (php_sapi_name() == 'cli') {
+    class BaseKernel extends StoneKernel {}
+} else {
+    class BaseKernel extends HttpKernel {}
+}
+
+
+class Kernel extends BaseKernel
+
+
+</code></pre></li>
+
+<li><p>运行Stone-Web, Web模式处在开发阶段， 所以默认不会以deamon模式启动， 便于调试</p>
+
+<pre><code class="language-bash">sudo php ./public/index.php
+</code></pre></li>
+
+<li><p>修改nginx配置</p>
+
+<pre><code class="language-nginx">location ~ \.php$ {
+    fastcgi_split_path_info ^(.+\.php)(/.+)$;
+    fastcgi_index index.php;
+    # fastcgi_pass unix:/var/run/php5-fpm.sock; # PHP-FPM
+    fastcgi_pass unix:/var/run/stone-web-fpm.sock; # Stone
+    include fastcgi_params;
+}
+</code></pre>
+
+<pre><code class="language-bash">sudo nginx -s reload
+</code></pre></li>
+
+<li><p>完成</p></li>
+</ol>
+
+<h3 id="在laravel-4-项目上使用stone-web:8c6eb53b86a2816f2aa3c6d1e82ca46c">在Laravel 4 项目上使用Stone-Web</h3>
+
+<ol>
+<li><p>修改public/index.php与bootstrap/start.php, 让Stone的Kernel接管请求的处理。</p>
+
+<pre><code class="language-php">// 修改public/index.php
+if (PHP_SAPI == 'cli') {
+    define('STONE_WEB_MODE', true);
+    $_SERVER['RUNENV'] = 'local';
+}
+</code></pre>
+
+<pre><code class="language-php">// 修改bootstrap/start.php
+if (defined('STONE_WEB_MODE')) {
+    $app = new Qufenqi\Stone\Foundation\Application;
+} else {
+    $app = new Illuminate\Foundation\Application;
+}
+</code></pre></li>
+
+<li><p>运行Stone-Web, Web模式处在开发阶段， 所以默认不会以deamon模式启动， 便于调试</p>
+
+<pre><code class="language-bash">sudo php ./public/index.php
+</code></pre></li>
+
+<li><p>修改nginx配置</p>
+
+<pre><code class="language-nginx">location ~ \.php$ {
+    fastcgi_split_path_info ^(.+\.php)(/.+)$;
+    fastcgi_index index.php;
+    # fastcgi_pass unix:/var/run/php5-fpm.sock; # PHP-FPM
+    fastcgi_pass unix:/var/run/stone-web-fpm.sock; # Stone
+    include fastcgi_params;
+}
+</code></pre>
+
+<pre><code class="language-bash">sudo nginx -s reload
+</code></pre></li>
+
+<li><p>完成</p></li>
+</ol>
+
+<h3 id="在laravel-5-中使用stone-server:8c6eb53b86a2816f2aa3c6d1e82ca46c">在Laravel 5 中使用Stone-Server</h3>
+
+<ol>
+<li><p>修改app\Console\Kernel.php</p>
+
+<pre><code class="language-php">protected $commands = [
+    // Commands\Inspire::class,
+    \Qufenqi\Stone\Console\Commands\StoneServer::class, // 添加这一行
+];
+</code></pre></li>
+
+<li><p>定义请求处理类， 我定义在app\Servers\Handler.php</p>
+
+<blockquote>
+<p>注意 这个其实就是 stone.php 配置里的 server.handler</p>
+</blockquote>
+
+<pre><code class="language-php">&lt;?php namespace App\Servers;
+
+
+use Qufenqi\Stone\Contracts\RequestHandler;
+use Response;
+
+
+class Handler implements RequestHandler
+{
+    public function process()
+    {
+        return Response::make('hello, stone server!');
+    }
+
+
+    public function onWorkerStart()
+    {
+
+
+    }
+}
+</code></pre></li>
+
+<li><p>运行Stone-Server</p>
+
+<pre><code class="language-bash">sudo php ./artisan stone:server
+</code></pre></li>
+
+<li><p>修改nginx配置</p>
+
+<pre><code class="language-nginx">location /server/ {
+    fastcgi_split_path_info ^(.+\.php)(/.+)$;
+    fastcgi_index index.php;
+    fastcgi_pass unix:/var/run/stone-server-fpm.sock; # Stone
+    include fastcgi_params;
+}
+</code></pre>
+
+<pre><code class="language-bash">sudo nginx -s reload
+</code></pre></li>
+
+<li><p>完成</p></li>
+</ol>
+
+<h3 id="在laravel-4-中使用stone-server:8c6eb53b86a2816f2aa3c6d1e82ca46c">在Laravel 4 中使用Stone-Server</h3>
+
+<ol>
+<li><p>修改app\start\artisan.php</p>
+
+<pre><code class="language-php">Artisan::add(new Qufenqi\Stone\Console\Commands\StoneServer);
+</code></pre></li>
+
+<li><p>定义请求处理类， 我定义在app\Servers\Handler.php</p>
+
+<blockquote>
+<p>注意 这个其实就是 stone.php 配置里的 server.handler</p>
+</blockquote>
+
+<pre><code class="language-php">&lt;?php namespace App\Servers;
+
+
+use Qufenqi\Stone\Contracts\RequestHandler;
+use Response;
+
+
+class Handler implements RequestHandler
+{
+    public function process()
+    {
+        return Response::make('hello, stone server!');
+    }
+
+
+    public function onWorkerStart()
+    {
+
+
+    }
+}
+</code></pre></li>
+
+<li><p>运行Stone-Server</p>
+
+<pre><code class="language-bash">sudo php ./artisan stone:server
+</code></pre></li>
+
+<li><p>修改nginx配置</p>
+
+<pre><code class="language-nginx">location /server/ {
+    fastcgi_split_path_info ^(.+\.php)(/.+)$;
+    fastcgi_index index.php;
+    fastcgi_pass unix:/var/run/stone-server-fpm.sock; # Stone
+    include fastcgi_params;
+}
+</code></pre>
+
+<pre><code class="language-bash">sudo nginx -s reload
+</code></pre></li>
+
+<li><p>完成</p></li>
+</ol>
+
+<h1 id="stone进阶指南:8c6eb53b86a2816f2aa3c6d1e82ca46c">Stone进阶指南</h1>
+
+<h2 id="1-stone的使用风险:8c6eb53b86a2816f2aa3c6d1e82ca46c">1. Stone的使用风险</h2>
+
+<p>使用Stone的一个很重要的事情是， 需要始终对内存使用抱有敬畏之心。 在未充分了解风险前， 请不要在实际项目中轻易尝试，否则可能产生非常严重的后果！！</p>
+
+<p>比如：Laravle的Cookie实现了单例模式， 是为了让开发者在任何地方可以往Response里追加cookie， 使用：</p>
+
+<pre><code class="language-php">Cookie::queue('key', 'value', 60);
+</code></pre>
+
+<p>这在PHP-FPM下不会有任何问题。 但Stone常驻内存后， 请求的资源没有在请求结束后释放， <strong>因此上一个请求在Cookie在下一个请求中仍然存在</strong>。 想像下， 如果这是一个关于Session Id的cookie， 会产生多么严重的后果。
+同样，<strong>Laravel的Auth对象， 也可能出现类似的问题</strong>。</p>
+
+<p>内存泄露什么的可能只是影响稳定性， 但是这个处理不当会带来难以估计的损失， 这是使用Stone或者类似常驻内存方案的最大风险。</p>
+
+<h2 id="2-boot-service-provider-与-request-service-provider:8c6eb53b86a2816f2aa3c6d1e82ca46c">2. Boot Service Provider 与 Request Service Provider</h2>
+
+<p>使用Stone（或者使用类似常驻内存解决方案）最重要的一点， 是需要区分哪些资源可以请求间共享， 哪些资源不能共享。这在
+Stone中被区别为: boot service provider 和 request service provider。</p>
+
+<ul>
+<li>boot service provider在进程初始化时被执行， 请求间共享。</li>
+<li>request service provider在请求时执行， 请求间不共享, 每次请求重新执行。</li>
+<li>laravel原来定义的service provider默认都是boot service Provider， 除非你在stone配置里重新定义。</li>
+</ul>
+
+<p>比如， Laravel的路由规则的解析， 是不需要每次请求都去执行的，而在一个时间较长的项目中， 路由规则可能有几千行，解析这些规则需要耗费不少时间， 所以设置成boot service provider是比较合适的。 而有一些service provider是需要每次都执行的，比如debugbar， 这些设置成request service provider比较合适。</p>
+
+<h2 id="3-实例快照与runkit:8c6eb53b86a2816f2aa3c6d1e82ca46c">3. 实例快照与runkit</h2>
+
+<p>还有一种情况，不需要每次执行具体的代码， 但是需要做一些重置操作。 比如Cookie， Laravel将cookie放到Response的数组中， 在结束响应时发送到浏览器端，请求结束后并没有清空而带到了下一个请求。 Stone的一个解决办法是将Cookie在创建时建立一个快照， 保存当前的状态， 等请求结束时再通过快照恢复， 避免Cookie被带到下一个请求的问题。</p>
+
+<blockquote>
+<p>这个在config/stone.php里可以定义。</p>
+</blockquote>
+
+<p>runkit在这个过程中的意义是给予PHP运行时注入实例的能力。 在app初始化时通过runkit注入指定实例， 让他们具有快照恢复的功能， 再建立快照， 请求结束后再通过快照恢复。</p>
+
+<p>快照和request service provider都能解决Cookie在请求间共享的问题， 快照的方式避免了再次执行service provider里register和boot的工作， 效率会更好一些。 如果你只是需要每次请求得到一个新的实例， 而不是需要在请求中再次执行一段程序， 使用快照的方式会更好一些。</p>
+
+<h2 id="4-理解请求间共享资源:8c6eb53b86a2816f2aa3c6d1e82ca46c">4. 理解请求间共享资源</h2>
+
+<p>这是一把双刃剑， 利用好了性能能得到极大提升， 否则就是bug的深渊。</p>
+
+<p>比如， 我们常需要实现权限系统， 如果能在初始化的时候将权限系统加载， 并在请求间共享， 这样每次请求就不需要再去从数据库里加载解析权限规则， 这样效率能得到提高。 利用好了这一点， 有助于你写出更高效的程序。</p>
+
+<p>而如果你没理解好这一点， 比如你使用了一个单例模式， 这个实例被维持在类的静态变量里， 因此不会在请求结束后自然销毁。 而这个实例在请求间共享又会出现问题，类似cookie的问题，这样就会造成bug。</p>
+
+<h2 id="5-沙盒模式:8c6eb53b86a2816f2aa3c6d1e82ca46c">5. 沙盒模式</h2>
+
+<p>我希望在未来能支持沙盒模式， 在初始化后建立一个沙盒， 把请求防止到沙盒里执行， 这样就可以更安全方便的实现。</p>
+
+<h1 id="设计stone的一些想法:8c6eb53b86a2816f2aa3c6d1e82ca46c">设计Stone的一些想法</h1>
+
+<h2 id="1-保持与php-fpm的兼容:8c6eb53b86a2816f2aa3c6d1e82ca46c">1. 保持与PHP-FPM的兼容</h2>
+
+<p>这样做能带来几个好处：</p>
+
+<ol>
+<li>调试方便， 在开发中， 程序员完全可以使用php-fpm来开发， 这样可以避免开发时反复重启进程的问题。 当然， 测试时还是应该使用Stone，免得一些问题需要在线上时才发现。</li>
+<li>使用方便， 5分钟内快速使用这个目标不会改变</li>
+<li>停用方便， 出现一些暂时无法解决的问题的时候， 可以通过修改nginx配置快速切换会PHP-FPM</li>
+</ol>
+
+<h2 id="2-什么场合下适合使用stone:8c6eb53b86a2816f2aa3c6d1e82ca46c">2. 什么场合下适合使用Stone</h2>
+
+<p>Stone的目标定位于解决已有PHP程序的性能问题。 随着开源程序的越来越完善， 现在解决高并发问题的技术方案越来越多， 有些已经非常成熟。 Stone的优势在于在解决性能问题的同时可以100%重用现在的业务逻辑。</p>
+
+<p>比如， 现有系统中需要加入一个抢购的功能， 我们可能会在抢购之前根据业务规则进行流量拦截， 可能需要使用到redis， 现有的用户系统，现有的业务规则。 使用Stone-Server， 你可以直接使用。 但是如果你使用其他语言的解决方案， 你可能需要把这些规则使用另外的语言再实现一遍。 这加大了开发和维护的成本。</p>
+
+<h2 id="3-继续降低使用stone的难度:8c6eb53b86a2816f2aa3c6d1e82ca46c">3. 继续降低使用Stone的难度</h2>
+
+<p>使用Stone很可能会踩坑。 一方面可能是开发者对于运行机制的理解不充分； 一方面可能是现有PHP程序没有考虑请求结束后的资源销毁的问题； 也可能是Stone本身程序存在一些bug。 Stone会持续完善， 并尽量对应用程序提供一些保护机制， 降低程序使用的难度。</p>
+
+<h1 id="在其他框架下使用stone:8c6eb53b86a2816f2aa3c6d1e82ca46c">在其他框架下使用Stone</h1>
+
+<p>由于精力有限， 暂时不考虑其他框架， 但是应该是可以较快移至到其他框架的。 如果你有兴趣， 不妨fork代码自己实现一下。</p>
+
+<h1 id="问题反馈:8c6eb53b86a2816f2aa3c6d1e82ca46c">问题反馈</h1>
+
+<p>希望感兴趣的朋友能积极给我反馈， 甚至参与到Stone的开发中来， 我们一起完善。
+我的邮箱是: rssidea(at)qq.com</p>
+
+</div>
+
+        <footer class="post-footer clearfix">
+    
+
+    <div class="share">
+        <a class="icon-twitter" href="http://twitter.com/share?text=stone%20quick%20start&url=http%3a%2f%2fchefxu.github.io%2fpost%2fstone-quick-start%2f"
+            onclick="window.open(this.href, 'twitter-share', 'width=550,height=235');return false;">
+            <i class="fa fa-twitter"></i>
+            <span class="hidden">Twitter</span>
+        </a>
+
+        <a class="icon-facebook" href="https://www.facebook.com/sharer/sharer.php?u=http%3a%2f%2fchefxu.github.io%2fpost%2fstone-quick-start%2f"
+            onclick="window.open(this.href, 'facebook-share','width=580,height=296');return false;">
+            <i class="fa fa-facebook"></i>
+            <span class="hidden">Facebook</span>
+        </a>
+
+        <a class="icon-google-plus" href="https://plus.google.com/share?url=http%3a%2f%2fchefxu.github.io%2fpost%2fstone-quick-start%2f"
+           onclick="window.open(this.href, 'google-plus-share', 'width=490,height=530');return false;">
+           <i class="fa fa-google-plus"></i>
+            <span class="hidden">Google+</span>
+        </a>
+    </div>
+</footer>
+
+        
+    </article>
+</div>
+
+            </div>
+        </div>
+
+        <footer class="footer">
+            <div class="container">
+                <div class="site-title-wrapper">
+                    <h1 class="site-title">
+                        <a title="代码苦旅" href="http://chefxu.github.io/">代码苦旅</a>
+                    </h1>
+                    <a class="button-square button-jump-top js-jump-top" href="#">
+                        <i class="fa fa-angle-up"></i>
+                    </a>
+                </div>
+
+                <p class="footer-copyright">
+                    <span>&copy; 2016 / Powered by <a href="http://gohugo.io/">Hugo</a></span>
+                </p>
+                <p class="footer-copyright">
+                    <span><a href="https://github.com/roryg/ghostwriter">Ghostwriter theme</a> By <a href="http://jollygoodthemes.com">JollyGoodThemes</a></span>
+                    <span>/ <a href="https://github.com/jbub/ghostwriter">Ported</a> to Hugo By <a href="https://github.com/jbub">jbub</a></span>
+                </p>
+            </div>
+        </footer>
+
+        <script src="http://chefxu.github.io/js/jquery-1.11.3.min.js"></script>
+        <script src="http://cdn.bootcss.com/highlight.js/8.0/highlight.min.js"></script>
+        <script src="http://chefxu.github.io/js/jquery.fitvids.js"></script>
+        <script src="http://chefxu.github.io/js/scripts.js"></script>
+    </body>
+</html>
+
