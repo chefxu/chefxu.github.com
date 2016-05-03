@@ -1,20 +1,20 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes" ?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>代码苦旅</title>
-    <link>http://chefxu.github.io/</link>
-    <description>Recent content on 代码苦旅</description>
+    <title>生活节奏太快难免心生浮躁，需要时常写点东西沉淀自己</title>
+    <link>/</link>
+    <description>Recent content on 生活节奏太快难免心生浮躁，需要时常写点东西沉淀自己</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
     <lastBuildDate>Mon, 02 May 2016 20:45:21 +0800</lastBuildDate>
-    <atom:link href="http://chefxu.github.io/index.xml" rel="self" type="application/rss+xml" />
+    <atom:link href="/index.xml" rel="self" type="application/rss+xml" />
     
     <item>
-      <title>stone quick start</title>
-      <link>http://chefxu.github.io/post/stone-quick-start/</link>
+      <title>Stone快速指南</title>
+      <link>/post/stone-quick-start/</link>
       <pubDate>Mon, 02 May 2016 20:45:21 +0800</pubDate>
       
-      <guid>http://chefxu.github.io/post/stone-quick-start/</guid>
+      <guid>/post/stone-quick-start/</guid>
       <description>
 
 &lt;h1 id=&#34;stone优化原理:8c6eb53b86a2816f2aa3c6d1e82ca46c&#34;&gt;Stone优化原理&lt;/h1&gt;
@@ -510,10 +510,10 @@ Stone中被区别为: boot service provider 和 request service provider。&lt;/
     
     <item>
       <title>Stone alpha版发布</title>
-      <link>http://chefxu.github.io/post/stone-alpha/</link>
+      <link>/post/stone-alpha/</link>
       <pubDate>Mon, 02 May 2016 15:38:50 +0800</pubDate>
       
-      <guid>http://chefxu.github.io/post/stone-alpha/</guid>
+      <guid>/post/stone-alpha/</guid>
       <description>
 
 &lt;h1 id=&#34;stone的由来:df9104273865eb60abece7dc4c3e68c4&#34;&gt;Stone的由来&lt;/h1&gt;
@@ -575,10 +575,10 @@ Stone中被区别为: boot service provider 和 request service provider。&lt;/
     
     <item>
       <title>关于Stone的一些计划</title>
-      <link>http://chefxu.github.io/post/stone_roadmap/</link>
+      <link>/post/stone_roadmap/</link>
       <pubDate>Sat, 23 Apr 2016 00:25:08 +0800</pubDate>
       
-      <guid>http://chefxu.github.io/post/stone_roadmap/</guid>
+      <guid>/post/stone_roadmap/</guid>
       <description>
 
 &lt;h1 id=&#34;关于:ba2bc2ee0383c786486da34d2d96d326&#34;&gt;关于&lt;/h1&gt;
@@ -613,10 +613,10 @@ Stone中被区别为: boot service provider 和 request service provider。&lt;/
     
     <item>
       <title>分析，理解，优化Laravel</title>
-      <link>http://chefxu.github.io/post/deepin_laravel/</link>
+      <link>/post/deepin_laravel/</link>
       <pubDate>Tue, 19 Apr 2016 19:44:07 +0800</pubDate>
       
-      <guid>http://chefxu.github.io/post/deepin_laravel/</guid>
+      <guid>/post/deepin_laravel/</guid>
       <description>
 
 &lt;h1 id=&#34;前言:9342adb7b594d3cbcff5efa79997fd88&#34;&gt;前言&lt;/h1&gt;
@@ -860,10 +860,10 @@ Hashing     Logging  Pagination  Queue     Routing  Validation
     
     <item>
       <title>test post</title>
-      <link>http://chefxu.github.io/post/test/</link>
+      <link>/post/test/</link>
       <pubDate>Tue, 19 Apr 2016 19:04:07 +0800</pubDate>
       
-      <guid>http://chefxu.github.io/post/test/</guid>
+      <guid>/post/test/</guid>
       <description>
 
 &lt;h1 id=&#34;hello-world:b128b7694e4de962e0088bcb1bcb254f&#34;&gt;hello world&lt;/h1&gt;
